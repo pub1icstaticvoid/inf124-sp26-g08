@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import LoginScreen from "./LoginScreen";
 import './App.css'
 
 const placeholder_data = {
@@ -22,8 +23,9 @@ const placeholder_messages = [
   { id: 103, user: "Friend B", text: "hi" },
 ]
 
-function App() {
+function App({ onLogout }) {
   const [activeTab, setActiveTab] = useState("DMs");
+
 
   return (
     <div className='app-container'>
@@ -32,6 +34,7 @@ function App() {
         <button onClick={() => setActiveTab("DMs")}>DMs</button>
         <button onClick={() => setActiveTab("Classes")}>Classes</button>
         <button onClick={() => setActiveTab("Clubs")}>Clubs</button>
+        <button className="logout-btn" onClick={onLogout}>Log Out</button>
       </nav>
 
       <aside className='list-sidebar'>
