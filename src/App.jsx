@@ -27,6 +27,11 @@ function App({ onLogout }) {
   const [activeTab, setActiveTab] = useState("DMs");
   const [messageInput, setMessageInput] = useState("");
   const [messages, setMessages] = useState(placeholder_messages);
+  const [userInfo, setUserInfo] = useState({
+    name: "John Student",
+    bio: "React enjoyer",
+    major: "CS"
+  });
 
   const handleSendMessage = () => {
     if (messageInput.trim() === "") return;
@@ -43,59 +48,85 @@ function App({ onLogout }) {
 
 
   return (
-    <div className='app-container'>
+    <div className={`app-container ${activeTab === "Profile" ? "non-messaging-mode" : ""}`}>
 
       <nav className='nav-sidebar'>
         <button onClick={() => setActiveTab("DMs")}>DMs</button>
         <button onClick={() => setActiveTab("Classes")}>Classes</button>
         <button onClick={() => setActiveTab("Clubs")}>Clubs</button>
+        <button onClick={() => setActiveTab("Profile")}>Profile</button>
         <button className="logout-btn" onClick={onLogout}>Log Out</button>
       </nav>
 
-      <aside className='list-sidebar'>
-        <div className='search-box'>
-          <input type='text' placeholder='Search' />
-          <button>+</button>
-        </div>
+      {activeTab !== "Profile" && (
+        <aside className='list-sidebar'>
+          <div className='search-box'>
+            <input type='text' placeholder='Search' />
+            <button>+</button>
+          </div>
 
-        <div className='chat-list'>
-          { placeholder_data[activeTab].map((item) => (
-            <div key={item.id} className='chat-item'>
-              <strong># {item.name}</strong>
-              <p style={{fontSize: '12px'}}>{item.lastMsg}</p>
-            </div>
-          ))}
-        </div>
-      </aside>
+          <div className='chat-list'>
+            { placeholder_data[activeTab].map((item) => (
+              <div key={item.id} className='chat-item'>
+                <strong># {item.name}</strong>
+                <p style={{fontSize: '12px'}}>{item.lastMsg}</p>
+              </div>
+            ))}
+          </div>
+        </aside>
+      )}
 
       <main className='chat-window'>
-        <header className='chat-header'>
-          <h2 className='chat-header-text'># current-chat-name</h2>
-        </header>
 
-        <div className='messages'>
-          {messages.map((msg) => (
-            <div key={msg.id} className='message-bubble'>
-              <span className="text-recipient">{msg.user}: </span>
-              <span className="text-message">{msg.text}</span>
+        {activeTab === "Profile" ? (
+
+          <div className='profile-edit'>
+            <h2>Edit Profile</h2>
+            <label>Name:</label>
+            <input
+              value={userInfo.name}
+              onChange={(e) => setUserInfo({...userInfo, name: e.target.value})}
+            />
+
+            <label>Bio:</label>
+            <textarea
+              value={userInfo.bio}
+              onChange={(e) => setUserInfo({...userInfo, bio: e.target.value})}
+            />
+
+            <button onClick={() => setActiveTab("DMs")}>Save Changes</button>
+          </div>
+
+        ) : (
+          <>
+            <header className='chat-header'>
+              <h2 className='chat-header-text'># current-chat-name</h2>
+            </header>
+
+            <div className='messages'>
+              {messages.map((msg) => (
+                <div key={msg.id} className='message-bubble'>
+                  <span className="text-recipient">{msg.user}: </span>
+                  <span className="text-message">{msg.text}</span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
 
-        <div className='input-area'>
-          <input
-            type="text"
-            placeholder="Message..."
-            value={messageInput}
-            onChange={(e) => setMessageInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                handleSendMessage();
-              }
-            }}
-          />
-        </div>
-
+            <div className='input-area'>
+              <input
+                type="text"
+                placeholder="Message..."
+                value={messageInput}
+                onChange={(e) => setMessageInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleSendMessage();
+                  }
+                }}
+              />
+            </div>
+          </>
+        )}
       </main>
     </div>
   );
