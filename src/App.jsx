@@ -19,12 +19,27 @@ const placeholder_data = {
 
 const placeholder_messages = [
   { id: 101, user: "Friend A", text: "no way" },
-  { id: 102, user: "Me", text: "hi" },
+  { id: 102, user: "You", text: "hi" },
   { id: 103, user: "Friend B", text: "hi" },
 ]
 
 function App({ onLogout }) {
   const [activeTab, setActiveTab] = useState("DMs");
+  const [messageInput, setMessageInput] = useState("");
+  const [messages, setMessages] = useState(placeholder_messages);
+
+  const handleSendMessage = () => {
+    if (messageInput.trim() === "") return;
+
+    const newMessage = {
+      id: Date.now(),
+      user: "You",
+      text: messageInput,
+    };
+
+    setMessages([...messages, newMessage]);
+    setMessageInput("");
+  };
 
 
   return (
@@ -55,24 +70,33 @@ function App({ onLogout }) {
 
       <main className='chat-window'>
         <header className='chat-header'>
-          <h2># current-chat-name</h2>
+          <h2 className='chat-header-text'># current-chat-name</h2>
         </header>
 
         <div className='messages'>
-          {placeholder_messages.map((msg) => (
+          {messages.map((msg) => (
             <div key={msg.id} className='message-bubble'>
-              <span style={{color: 'var(--accent)', fontWeight: 'bold'}}>{msg.user}: </span>
-              <span>{msg.text}</span>
+              <span className="text-recipient">{msg.user}: </span>
+              <span className="text-message">{msg.text}</span>
             </div>
           ))}
         </div>
 
         <div className='input-area'>
-          <input type='text' placeholder='Message...' />
+          <input
+            type="text"
+            placeholder="Message..."
+            value={messageInput}
+            onChange={(e) => setMessageInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleSendMessage();
+              }
+            }}
+          />
         </div>
+
       </main>
-
-
     </div>
   );
 }

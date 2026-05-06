@@ -2,7 +2,7 @@
 
 h1 {
 
-  font-family: "Raleway", sans-serif;
+  font-family: var(--raleway);
 
 }
 
@@ -21,7 +21,7 @@ body {
 }
 
 .login-text {
-  font-family: "Raleway", sans-serif;
+  font-family: var(--raleway);
   display: flex;
   flex-direction: column;
   font-size: 100px;
@@ -45,7 +45,7 @@ body {
 }
 
 .login-box input {
-  font-family: "Raleway", sans-serif;
+  font-family: var(--raleway);
   padding: 10px;
   font-size: 14px;
 }
@@ -54,7 +54,7 @@ body {
   padding: 10px;
   font-size: 14px;
   cursor: pointer;
-  font-family: "Raleway", sans-serif;
+  font-family: var(--raleway);
 }
 
 .login-button {
@@ -71,7 +71,7 @@ body {
 }
 
 .signup-text {
-  font-family: "Raleway", sans-serif;
+  font-family: var(--raleway);
   margin: 8px 0 0;
   text-align: center;
   font-size: 16px;
@@ -81,7 +81,7 @@ body {
   color: #2563eb;
   cursor: pointer;
   font-weight: 600;
-  font-family: "Raleway", sans-serif;
+  font-family: var(--raleway);
 }
 
 .signup-link:hover {
