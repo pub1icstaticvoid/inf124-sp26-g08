@@ -21,6 +21,7 @@ body {
 }
 
 .login-text {
+  font-family: "Raleway", sans-serif;
   display: flex;
   flex-direction: column;
   font-size: 100px;
@@ -44,6 +45,7 @@ body {
 }
 
 .login-box input {
+  font-family: "Raleway", sans-serif;
   padding: 10px;
   font-size: 14px;
 }
@@ -52,4 +54,36 @@ body {
   padding: 10px;
   font-size: 14px;
   cursor: pointer;
+  font-family: "Raleway", sans-serif;
+}
+
+.login-button {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #70a841;
+  padding: 10px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.login-button:hover {
+  background: #598a31;
+}
+
+.signup-text {
+  font-family: "Raleway", sans-serif;
+  margin: 8px 0 0;
+  text-align: center;
+  font-size: 16px;
+}
+
+.signup-link {
+  color: #2563eb;
+  cursor: pointer;
+  font-weight: 600;
+  font-family: "Raleway", sans-serif;
+}
+
+.signup-link:hover {
+  text-decoration: underline;
 }

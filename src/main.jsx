@@ -4,26 +4,31 @@ import { useState } from "react";
 import './index.css';
 import App from './App';
 import LoginScreen from "./LoginScreen";
+import CreateAccount from "./CreateAccount";
 
 function Root() {
-  const [isLoggedIn, setIsLoggedIn] = useState(
-    localStorage.getItem("isLoggedIn") === "true"
-  );
+  const [screen, setScreen] = useState("login");
 
-  const handleLogin = () => {
-    localStorage.setItem("isLoggedIn", "true");
-    setIsLoggedIn(true);
-  };
+  return (
+    <>
+      {screen === "login" && (
+        <LoginScreen
+          onLogin={() => setScreen("app")}
+          onCreateAccount={() => setScreen("create")}
+        />
+      )}
 
-  const handleLogout = () => {
-    localStorage.removeItem("isLoggedIn");
-    setIsLoggedIn(false);
-  };
+      {screen === "create" && (
+        <CreateAccount
+          onAccountCreated={() => setScreen("app")}
+          onBackToLogin={() => setScreen("login")}
+        />
+      )}
 
-  return isLoggedIn ? (
-    <App onLogout={handleLogout} />
-  ) : (
-    <LoginScreen onLogin={handleLogin} />
+      {screen === "app" && (
+        <App onLogout={() => setScreen("login")} />
+      )}
+    </>
   );
 }
 

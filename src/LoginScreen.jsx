@@ -1,8 +1,10 @@
 import { useState } from "react";
 import './LoginScreen.css'
 import App from "./App";
+import CreateAccount from "./CreateAccount";
 
-export default function LoginScreen({ onLogin }) {
+
+export default function LoginScreen({ onLogin, onCreateAccount }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -17,7 +19,7 @@ export default function LoginScreen({ onLogin }) {
 
   return (
     <div className="login-page">
-      <h1 className="login-text">Login </h1>
+      <h1 className="login-text">Login</h1>
       <form className="login-box" onSubmit={handleSubmit}>
         
 
@@ -35,15 +37,16 @@ export default function LoginScreen({ onLogin }) {
           onChange={(e) => setPassword(e.target.value)}
         />
 
-        <button type="submit">Log In</button>
+        <button className="login-button" type="submit">Log In</button>
+        <button type="button" onClick={handleCanvasLogin}>Log In with Canvas</button>
 
-        <button type="button" onClick={handleCanvasLogin}>
-          Log In with Canvas
-        </button>
+        <p className="signup-text">
+          Don't have an account?{" "}
+          <span className="signup-link" onClick={onCreateAccount}>
+            Sign up
+          </span>
+        </p>
 
-        <button type="button">
-          Create an Account (WIP)
-        </button>
       </form>
     </div>
   );
