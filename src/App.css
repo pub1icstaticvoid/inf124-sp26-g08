@@ -111,3 +111,9 @@
   color: var(--text);
   font-family: var(--raleway);
 }
+
+.my-message {
+  font-family: var(--raleway);
+  color: rgb(132, 179, 106);
+  font-weight: bold;
+}

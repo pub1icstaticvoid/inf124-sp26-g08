@@ -99,7 +99,7 @@ function App({ onLogout }) {
             <div className='messages'>
               {messages.map((msg) => (
                 <div key={msg.id} className='message-bubble'>
-                  <span className="text-recipient">{msg.user}: </span>
+                  <span className={`${msg.user === "You" ? "my-message" : "text-recipient"}`}>{msg.user}: </span>
                   <span className="text-message">{msg.text}</span>
                 </div>
               ))}
