@@ -5,6 +5,7 @@ import './index.css';
 import App from './App';
 import LoginScreen from "./LoginScreen";
 import CreateAccount from "./CreateAccount";
+import Profile from "./Profile"
 
 function Root() {
   const [screen, setScreen] = useState("login");

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import LoginScreen from "./LoginScreen";
 import './App.css'
+import Profile from "./Profile"
 
 const placeholder_data = {
   DMs: [
@@ -54,7 +55,14 @@ function App({ onLogout }) {
         <button onClick={() => setActiveTab("DMs")}>DMs</button>
         <button onClick={() => setActiveTab("Classes")}>Classes</button>
         <button onClick={() => setActiveTab("Clubs")}>Clubs</button>
+
         <button onClick={() => setActiveTab("Profile")}>Profile</button>
+
+
+        {/*<button onClick={() => setCurrentPage("Profile")}>Profile</button>*/}
+
+
+
         <button className="logout-btn" onClick={onLogout}>Log Out</button>
       </nav>
 
@@ -80,22 +88,7 @@ function App({ onLogout }) {
 
         {activeTab === "Profile" ? (
 
-          <div className='profile-edit'>
-            <h2>Edit Profile</h2>
-            <label>Name:</label>
-            <input
-              value={userInfo.name}
-              onChange={(e) => setUserInfo({...userInfo, name: e.target.value})}
-            />
-
-            <label>Bio:</label>
-            <textarea
-              value={userInfo.bio}
-              onChange={(e) => setUserInfo({...userInfo, bio: e.target.value})}
-            />
-
-            <button onClick={() => setActiveTab("DMs")}>Save Changes</button>
-          </div>
+          <Profile / >
 
         ) : (
           <>
