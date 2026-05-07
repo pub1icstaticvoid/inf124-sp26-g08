@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import LoginScreen from "./LoginScreen";
 import './App.css'
 import Profile from "./Profile"
+import Settings from './Settings';
 
 const placeholder_data = {
   DMs: [
@@ -28,11 +29,6 @@ function App({ onLogout }) {
   const [activeTab, setActiveTab] = useState("DMs");
   const [messageInput, setMessageInput] = useState("");
   const [messages, setMessages] = useState(placeholder_messages);
-  const [userInfo, setUserInfo] = useState({
-    name: "John Student",
-    bio: "React enjoyer",
-    major: "CS"
-  });
 
   const messagesEndRef = useRef(null);
 
@@ -55,18 +51,19 @@ function App({ onLogout }) {
 
 
   return (
-    <div className={`app-container ${activeTab === "Profile" ? "non-messaging-mode" : ""}`}>
+    <div className={`app-container ${activeTab === "Profile" || activeTab === "Settings" ? "non-messaging-mode" : ""}`}>
 
       <nav className='nav-sidebar'>
         <button onClick={() => setActiveTab("DMs")}>DMs</button>
         <button onClick={() => setActiveTab("Classes")}>Classes</button>
         <button onClick={() => setActiveTab("Clubs")}>Clubs</button>
         <button onClick={() => setActiveTab("Profile")}>Profile</button>
+        <button onClick={() => setActiveTab("Settings")}>Settings</button>
 
         <button className="logout-btn" onClick={onLogout}>Log Out</button>
       </nav>
 
-      {activeTab !== "Profile" && (
+      {activeTab !== "Profile" && activeTab !== "Settings" && (
         <aside className='list-sidebar'>
           <div className='search-box'>
             <input type='text' placeholder='Search' />
@@ -87,9 +84,9 @@ function App({ onLogout }) {
       <main className='chat-window'>
 
         {activeTab === "Profile" ? (
-
-          <Profile / >
-
+          <Profile />
+        ) : activeTab === "Settings" ? (
+          <Settings />
         ) : (
           <>
             <header className='chat-header'>
