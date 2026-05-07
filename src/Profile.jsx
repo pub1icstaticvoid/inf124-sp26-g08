@@ -1,6 +1,9 @@
 import "./Profile.css";
+import { useState } from "react";
 
 export default function Profile() {
+    const [bio, setBio] = useState("");
+
     return (
         <div className="profile-tab">
             <div className="profile-tab-top">
@@ -16,7 +19,12 @@ export default function Profile() {
                 <div className="profile-bio-section">
                     <h3 className="profile-text">Bio</h3>
                     <div className="profile-bio-box">
-                        <p>Place Holder</p>
+                        <textarea
+                            className="bio-input"
+                            value={bio}
+                            onChange={(e) => setBio(e.target.value)}
+                            placeholder="Write your bio here"
+                        />
                     </div>
                 </div>
             </div>
