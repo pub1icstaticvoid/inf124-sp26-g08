@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import LoginScreen from "./LoginScreen";
 import './App.css'
 import Profile from "./Profile"
@@ -34,6 +34,8 @@ function App({ onLogout }) {
     major: "CS"
   });
 
+  const messagesEndRef = useRef(null);
+
   const handleSendMessage = () => {
     if (messageInput.trim() === "") return;
 
@@ -47,6 +49,10 @@ function App({ onLogout }) {
     setMessageInput("");
   };
 
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
 
   return (
     <div className={`app-container ${activeTab === "Profile" ? "non-messaging-mode" : ""}`}>
@@ -55,13 +61,7 @@ function App({ onLogout }) {
         <button onClick={() => setActiveTab("DMs")}>DMs</button>
         <button onClick={() => setActiveTab("Classes")}>Classes</button>
         <button onClick={() => setActiveTab("Clubs")}>Clubs</button>
-
         <button onClick={() => setActiveTab("Profile")}>Profile</button>
-
-
-        {/*<button onClick={() => setCurrentPage("Profile")}>Profile</button>*/}
-
-
 
         <button className="logout-btn" onClick={onLogout}>Log Out</button>
       </nav>
@@ -103,6 +103,7 @@ function App({ onLogout }) {
                   <span className="text-message">{msg.text}</span>
                 </div>
               ))}
+              <div ref={messagesEndRef}></div>
             </div>
 
             <div className='input-area'>
