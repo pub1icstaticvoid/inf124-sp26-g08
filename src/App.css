@@ -26,7 +26,7 @@
   flex-direction: column;
   gap: 10px;
   padding: 10px;
-  background: var(--bg);
+  background-color: var(--bg);
   border-right: 1px solid var(--border);
 }
 
@@ -52,7 +52,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: var(--bg);
+  background-color: var(--bg);
 }
 
 .messages {
@@ -61,7 +61,7 @@
   padding: 10px;
   overflow-y: auto;
   height: 400px;
-  background: var(--bg);
+  background-color: var(--bg);
 }
 
 .input-area {
@@ -82,7 +82,7 @@
 }
 
 .chat-item:hover {
-  background: var(--accent-bg);
+  background-color: var(--accent-bg);
 }
 
 .message-bubble {

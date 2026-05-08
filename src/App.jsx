@@ -30,6 +30,12 @@ function App({ onLogout }) {
   const [messageInput, setMessageInput] = useState("");
   const [messages, setMessages] = useState(placeholder_messages);
 
+  const [theme, setTheme] = useState("dark");
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+  }, [theme]);
+
   const messagesEndRef = useRef(null);
 
   const handleSendMessage = () => {
@@ -86,7 +92,7 @@ function App({ onLogout }) {
         {activeTab === "Profile" ? (
           <Profile />
         ) : activeTab === "Settings" ? (
-          <Settings />
+          <Settings theme={theme} setTheme={setTheme} />
         ) : (
           <>
             <header className='chat-header'>

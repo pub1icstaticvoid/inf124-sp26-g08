@@ -1,8 +1,7 @@
 import React, { useState } from "react";
 import './Settings.css';
 
-export default function Settings() {
-    const [theme, setTheme] = useState("dark");
+export default function Settings({ theme, setTheme }) {
     const [notifications, setNotifications] = useState({
         desktop: true,
         dms: true,
@@ -11,8 +10,13 @@ export default function Settings() {
     });
 
     function handleToggle(key) {
-        setNotifications(prev => ({ ...prev, [key]: !prev[key] }));
-    };
+        setNotifications(prev => {
+            const newState = { ...prev };
+            const currentValue = newState[key];
+            newState[key] = !currentValue;
+            return newState;
+        });
+    }
 
     return (
         <div className="settings-container">
@@ -23,8 +27,8 @@ export default function Settings() {
                 <div className="setting-item">
                     <label>Theme</label>
                     <select value={theme} onChange={(e) => setTheme(e.target.value)}>
-                        <option value="light">Light Mode</option>
-                        <option value="dark">Dark Mode</option>
+                        <option value="light">Light</option>
+                        <option value="dark">Dark</option>
                     </select>
                 </div>
             </section>
