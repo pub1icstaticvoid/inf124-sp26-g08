@@ -1,0 +1,104 @@
+.announcements-page {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  background: var(--bg);
+  padding: 28px 32px;
+  color: var(--text-h);
+  overflow-y: auto;
+}
+
+.announcements-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.announcement-row {
+  display: grid;
+  grid-template-columns: 140px 1fr 68px;
+  align-items: stretch;
+  border: 1px solid var(--border);
+  background: var(--code-bg);
+  min-height: 154px;
+}
+
+.announcement-group-label {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 18px 14px;
+  border-right: 1px solid var(--border);
+  font-family: var(--raleway);
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.announcement-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  padding: 14px 16px;
+}
+
+.announcement-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 124px;
+  padding: 18px;
+  box-sizing: border-box;
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.announcement-card h3 {
+  margin: 0 0 10px;
+  font-family: var(--raleway);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.announcement-card p {
+  color: var(--text);
+  font-family: var(--raleway);
+  line-height: 1.5;
+}
+
+.announcement-history {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border-left: 1px solid var(--border);
+  font-family: var(--raleway);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-h);
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+@media (max-width: 900px) {
+  .announcement-row {
+    grid-template-columns: 1fr;
+  }
+
+  .announcement-group-label,
+  .announcement-history {
+    writing-mode: initial;
+    text-orientation: initial;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    justify-content: flex-start;
+    padding: 14px 16px;
+  }
+
+  .announcement-history {
+    border-top: 1px solid var(--border);
+    border-bottom: none;
+  }
+}
