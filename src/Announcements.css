@@ -3,7 +3,7 @@
   height: 100%;
   box-sizing: border-box;
   background: var(--bg);
-  padding: 28px 32px;
+  padding: 28px clamp(12px, 3vw, 32px);
   color: var(--text-h);
   overflow-y: auto;
 }
@@ -11,16 +11,18 @@
 .announcements-groups {
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 20px;
 }
 
 .announcement-row {
   display: grid;
-  grid-template-columns: 140px 1fr 68px;
+  grid-template-columns: minmax(80px, 140px) 1fr minmax(40px, 68px);
   align-items: stretch;
   border: 1px solid var(--border);
-  background: var(--code-bg);
-  min-height: 154px;
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  overflow: hidden;
+  min-height: 140px;
 }
 
 .announcement-group-label {
@@ -29,16 +31,16 @@
   justify-content: flex-start;
   padding: 18px 14px;
   border-right: 1px solid var(--border);
-  font-family: var(--raleway);
-  font-size: 1.3rem;
+  font-family: var(--heading);
+  font-size: 1.1rem;
   font-weight: 700;
-  color: var(--text-h);
+  color: var(--accent);
 }
 
 .announcement-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  gap: 12px;
   padding: 14px 16px;
 }
 
@@ -46,24 +48,32 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  min-height: 124px;
-  padding: 18px;
+  min-height: 110px;
+  padding: 16px;
   box-sizing: border-box;
   background: var(--bg);
   border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.announcement-card:hover {
+  border-color: var(--accent-border);
+  box-shadow: var(--shadow);
 }
 
 .announcement-card h3 {
-  margin: 0 0 10px;
-  font-family: var(--raleway);
-  font-size: 1.2rem;
+  margin: 0 0 8px;
+  font-family: var(--heading);
+  font-size: 1rem;
   font-weight: 700;
   color: var(--text-h);
 }
 
 .announcement-card p {
   color: var(--text);
-  font-family: var(--raleway);
+  font-family: var(--sans);
+  font-size: 0.9rem;
   line-height: 1.5;
 }
 
@@ -74,12 +84,18 @@
   justify-content: center;
   gap: 4px;
   border-left: 1px solid var(--border);
-  font-family: var(--raleway);
-  font-size: 0.95rem;
+  font-family: var(--sans);
+  font-size: 0.8rem;
   font-weight: 600;
-  color: var(--text-h);
+  color: var(--text);
   writing-mode: vertical-rl;
   text-orientation: mixed;
+  transition: color var(--transition);
+  cursor: pointer;
+}
+
+.announcement-history:hover {
+  color: var(--accent);
 }
 
 @media (max-width: 900px) {

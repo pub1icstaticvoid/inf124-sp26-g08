@@ -4,6 +4,17 @@ import Profile from './Profile'
 import Settings from './Settings'
 import Announcements from './Announcements'
 
+const ACCENT_COLORS = [
+  { name: 'Purple', light: '#8b5cf6', dark: '#a78bfa', hover: '#7c3aed', darkHover: '#c4b5fd' },
+  { name: 'Blue', light: '#3b82f6', dark: '#60a5fa', hover: '#2563eb', darkHover: '#93bbfd' },
+  { name: 'Teal', light: '#14b8a6', dark: '#2dd4bf', hover: '#0d9488', darkHover: '#5eead4' },
+  { name: 'Green', light: '#22c55e', dark: '#4ade80', hover: '#16a34a', darkHover: '#86efac' },
+  { name: 'Orange', light: '#f97316', dark: '#fb923c', hover: '#ea580c', darkHover: '#fdba74' },
+  { name: 'Pink', light: '#ec4899', dark: '#f472b6', hover: '#db2777', darkHover: '#f9a8d4' },
+  { name: 'Red', light: '#ef4444', dark: '#f87171', hover: '#dc2626', darkHover: '#fca5a5' },
+  { name: 'Amber', light: '#f59e0b', dark: '#fbbf24', hover: '#d97706', darkHover: '#fcd34d' },
+]
+
 const initialConversations = {
   DMs: [
     { id: 'dm-friend-a', name: 'Friend A', lastMsg: 'Want to study after class?' },
@@ -98,12 +109,29 @@ const announcementGroups = [
 ]
 
 const messagingTabs = ['DMs', 'Classes', 'Clubs']
+const allTabs = ['DMs', 'Classes', 'Clubs', 'Profile', 'Announcements', 'Settings']
+
+function applyAccentVars(theme, accentIndex) {
+  const c = ACCENT_COLORS[accentIndex]
+  const isDark = theme === 'dark'
+  const base = isDark ? c.dark : c.light
+  const hover = isDark ? c.darkHover : c.hover
+  const r = parseInt(base.slice(1, 3), 16)
+  const g = parseInt(base.slice(3, 5), 16)
+  const b = parseInt(base.slice(5, 7), 16)
+
+  document.documentElement.style.setProperty('--accent-base', base)
+  document.documentElement.style.setProperty('--accent-hover-base', hover)
+  document.documentElement.style.setProperty('--accent-subtle-base', `rgba(${r}, ${g}, ${b}, 0.1)`)
+  document.documentElement.style.setProperty('--accent-border-base', `rgba(${r}, ${g}, ${b}, 0.4)`)
+}
 
 function App({ onLogout }) {
   const [activeTab, setActiveTab] = useState('DMs')
   const [messageInput, setMessageInput] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [theme, setTheme] = useState('dark')
+  const [accentIndex, setAccentIndex] = useState(0)
   const [conversations, setConversations] = useState(initialConversations)
   const [messagesByConversation, setMessagesByConversation] = useState(initialMessagesByConversation)
   const [selectedConversationIds, setSelectedConversationIds] = useState({
@@ -129,7 +157,8 @@ function App({ onLogout }) {
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
-  }, [theme])
+    applyAccentVars(theme, accentIndex)
+  }, [theme, accentIndex])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -264,24 +293,16 @@ function App({ onLogout }) {
       }`}
     >
       <nav className="nav-sidebar">
-        <button type="button" onClick={() => handleTabChange('DMs')}>
-          DMs
-        </button>
-        <button type="button" onClick={() => handleTabChange('Classes')}>
-          Classes
-        </button>
-        <button type="button" onClick={() => handleTabChange('Clubs')}>
-          Clubs
-        </button>
-        <button type="button" onClick={() => handleTabChange('Profile')}>
-          Profile
-        </button>
-        <button type="button" onClick={() => handleTabChange('Announcements')}>
-          Announcements
-        </button>
-        <button type="button" onClick={() => handleTabChange('Settings')}>
-          Settings
-        </button>
+        {allTabs.map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            className={activeTab === tab ? 'nav-active' : ''}
+            onClick={() => handleTabChange(tab)}
+          >
+            {tab}
+          </button>
+        ))}
 
         <button type="button" className="logout-btn" onClick={onLogout}>
           Log Out
@@ -309,7 +330,7 @@ function App({ onLogout }) {
                 onClick={() => handleSelectConversation(item.id)}
               >
                 <strong>{activeTab === 'DMs' ? item.name : `# ${item.name}`}</strong>
-                <p style={{ fontSize: '12px' }}>{item.lastMsg}</p>
+                <p style={{ fontSize: '12px', marginTop: '4px' }}>{item.lastMsg}</p>
               </button>
             ))}
 
@@ -324,7 +345,7 @@ function App({ onLogout }) {
         ) : activeTab === 'Announcements' ? (
           <Announcements groups={announcementGroups} />
         ) : activeTab === 'Settings' ? (
-          <Settings theme={theme} setTheme={setTheme} />
+          <Settings theme={theme} setTheme={setTheme} accentIndex={accentIndex} setAccentIndex={setAccentIndex} />
         ) : (
           <>
             <header className="chat-header">
@@ -336,12 +357,13 @@ function App({ onLogout }) {
                 const isEditing =
                   editingMessage?.conversationId === activeConversation?.id &&
                   editingMessage?.messageId === msg.id
+                const isOwn = msg.user === 'You'
 
                 return (
-                  <div key={msg.id} className="message-bubble">
+                  <div key={msg.id} className={`message-bubble ${isOwn ? 'message-bubble-own' : ''}`}>
                     <div className="message-row">
                       <div className="message-content">
-                        <span className={`${msg.user === 'You' ? 'my-message' : 'text-recipient'}`}>
+                        <span className={isOwn ? 'my-message' : 'text-recipient'}>
                           {msg.user}:{' '}
                         </span>
 

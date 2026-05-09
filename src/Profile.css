@@ -7,7 +7,7 @@
     display: flex;
     flex-direction: column;
     gap: 28px;
-    color: #111;
+    color: var(--text-h);
     overflow-y: auto;
 }
 
@@ -15,7 +15,7 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    gap: 20px;
+    gap: 24px;
 }
 
 .profile-user-section {
@@ -26,47 +26,51 @@
 }
 
 .profile-avatar {
-    width: 188px;
-    height: 188px;
+    width: 160px;
+    height: 160px;
     border-radius: 50%;
     background: var(--code-bg);
-    color: var(--text-h);
+    color: var(--text);
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    font-family: var(--raleway);
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 500;
+    border: 3px solid var(--border);
 }
 
 .profile-user-info h1 {
-    margin: 10px 0 4px 0;
-    font-size: 3.5rem;
-    font-weight: bolder;
+    margin: 8px 0 4px 0;
+    font-size: 2.8rem;
+    font-weight: 700;
     color: var(--text-h);
+    letter-spacing: -1px;
 }
 
 .email {
-    margin-top: 1.5rem;
+    margin-top: 1rem;
     margin-left: 4px;
-    font-size: 2rem;
-    font-weight: 500;
-    color: var(--text-h);
-    font-family: var(--raleway);
+    font-size: 1.3rem;
+    font-weight: 400;
+    color: var(--text);
+    font-family: var(--sans);
 }
 
 .profile-text {
     color: var(--text-h);
-    font-family: var(--raleway);
-    font-size: 3rem;
-    font-weight: bolder;
+    font-family: var(--heading);
+    font-size: 2.2rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
 }
 
 .profile-bio-box p {
     color: var(--text-h);
-    font-family: var(--raleway);
+    font-family: var(--sans);
     padding: 8px;
 }
-
 
 .profile-bio-section {
     width: 45%;
@@ -74,10 +78,10 @@
 }
 
 .profile-bio-section h3 {
-    margin: 0 0 2rem 0;
+    margin: 0 0 1.5rem 0;
     text-align: center;
-    font-size: 2.5rem;
-    font-weight: bolder;
+    font-size: 2rem;
+    font-weight: 700;
 }
 
 .profile-bio-box {
@@ -85,7 +89,9 @@
     height: 8rem;
     background: var(--code-bg);
     border: 1px solid var(--border);
+    border-radius: var(--radius);
     box-sizing: border-box;
+    overflow: hidden;
 }
 
 .bio-input {
@@ -93,21 +99,22 @@
     width: 100%;
     height: 100%;
     box-sizing: border-box;
-
     resize: none;
     border: none;
     outline: none;
     background: transparent;
-
     padding: 14px 16px;
     margin: 0;
-
     color: var(--text-h);
-    font-family: var(--raleway);
-    font-size: 1rem;
-    line-height: 1.4;
+    font-family: var(--sans);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    border-radius: var(--radius);
 }
 
+.bio-input:focus {
+    box-shadow: none;
+}
 
 .profile-tab-bottom {
     display: flex;
@@ -120,44 +127,47 @@
     flex-shrink: 0;
 }
 
-.profile-left-info h3 {
-    font-weight: bolder;
-    font-family: var(--raleway);
+.profile-left-info > h3 {
+    font-weight: 700;
+    font-family: var(--heading);
     color: var(--text-h);
-    font-size: 1.5rem;
+    font-size: 1.3rem;
+    margin-bottom: 12px;
 }
 
-
 .profile-info-block {
-    padding: 4px, 4px, 4px, 26px;  
+    padding: 14px;
     background: var(--code-bg);
     border: 1px solid var(--border);
+    border-radius: var(--radius);
     display: flex;
     flex-direction: column;
     gap: 12px;
 }
 
 .profile-info-block h3 {
-    margin: 0 0 1px 0;
-    padding-left: 6px;
-    padding-top: 6px;
-    font-size: 1.15rem;
-    font-weight: bold;
-    font-family: var(--raleway);
-    color: var(--text-h);
+    margin: 0;
+    padding: 0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    font-family: var(--sans);
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
 .profile-info-block p {
-    padding: 6px;
+    padding: 2px 0;
     font-size: 0.95rem;
-    line-height: 1.35;
-    font-family: var(--raleway);
+    line-height: 1.4;
+    font-family: var(--sans);
     color: var(--text-h);
 }
 
 .profile-left-section {
     display: flex;
     flex-direction: column;
+    gap: 2px;
 }
 
 .profile-clubs-section {
@@ -165,68 +175,68 @@
     min-width: 260px;
 }
 
-.profile-clubs-section h3 {
-    margin: 0 0 8px 0;
-    font-size: 1.5rem;
-    font-weight: bolder;
-    font-family: var(--raleway);
+.profile-clubs-section > h3 {
+    margin: 0 0 12px 0;
+    font-size: 1.3rem;
+    font-weight: 700;
+    font-family: var(--heading);
     color: var(--text-h);
 }
 
 .profile-clubs-box {
-    background: var(--code-bg);
-    min-height: 240px;
+    min-height: 200px;
     width: 100%;
     max-width: 340px;
-    padding: 10px 14px;
+    padding: 14px;
     box-sizing: border-box;
     background: var(--code-bg);
     border: 1px solid var(--border);
+    border-radius: var(--radius);
 }
 
-.profile-clubs-header{
-    font-size: 1.15rem;
-    font-weight: bold;
-    color: var(--text-h);
-    font-family: var(--raleway);
+.profile-clubs-header {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--accent);
+    font-family: var(--sans);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 20px;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
 }
-
 
 .profile-club-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 20px;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
+    padding: 6px 0;
     font-size: 0.95rem;
     color: var(--text-h);
-    font-family: var(--raleway);
-}
-
-.profile-clubs-header {
-    font-weight: 600;
+    font-family: var(--sans);
 }
 
 @media (max-width: 900px) {
   .profile-tab-top,
   .profile-tab-bottom {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .profile-bio-section {
-        width: 100%;
+    width: 100%;
   }
 
   .profile-left-info {
-        width: 100%;
+    width: 100%;
   }
 
   .profile-clubs-box {
-        max-width: 100%;
+    max-width: 100%;
   }
 }
