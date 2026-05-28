@@ -12,6 +12,8 @@ const connectDb = async () => {
         console.log("connected to shared mongoDB atlas cloud");
 
         await dbInstance.collection("users").createIndex({ "email": 1}, { unique: true });
+
+        await dbInstance.collection("messages").createIndex({ "conversationId": 1, "timestamp": 1 });
     }
     catch (error) {
         console.error("mongoDB connection failed");
