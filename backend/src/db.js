@@ -1,4 +1,5 @@
 // shared database client
+require("dotenv").config();
 const { MongoClient } = require("mongodb");
 
 const client = new MongoClient(process.env.MONGO_URI);
@@ -17,6 +18,7 @@ const connectDb = async () => {
     }
     catch (error) {
         console.error("mongoDB connection failed");
+        console.error(error);
         process.exit(1);
     }
 };

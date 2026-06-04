@@ -3,6 +3,7 @@ import './App.css'
 import Profile from './Profile'
 import Settings from './Settings'
 import Announcements from './Announcements'
+import { socket } from "./socket";
 
 const ACCENT_COLORS = [
   { name: 'Purple', light: '#8b5cf6', dark: '#a78bfa', hover: '#7c3aed', darkHover: '#c4b5fd' },
@@ -161,8 +162,68 @@ function App({ onLogout }) {
   }, [theme, accentIndex])
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [activeConversation?.id, activeMessages.length])
+    socket.connect()
+
+    const handleConnect = () => {
+      console.log('Frontend socket connected:', socket.id)
+    }
+
+    const handleConnectError = (error) => {
+      console.error('Socket connect error:', error.message ?? error)
+    }
+
+    const handleReceiveMessage = (incomingMessage) => {
+      const { conversationId, category } = incomingMessage
+
+      if (!conversationId || !category) {
+        return
+      }
+
+      setMessagesByConversation((prev) => {
+        const existingMessages = prev[conversationId] ?? []
+
+        if (existingMessages.some((msg) => msg.id === incomingMessage.id)) {
+          return prev
+        }
+
+        return {
+          ...prev,
+          [conversationId]: [...existingMessages, incomingMessage],
+        }
+      })
+
+      setConversations((prev) => {
+        const conversationGroup = prev[category]
+
+        if (!conversationGroup) {
+          return prev
+        }
+
+        return {
+          ...prev,
+          [category]: conversationGroup.map((conversation) =>
+            conversation.id === conversationId
+              ? {
+                  ...conversation,
+                  lastMsg: incomingMessage.text,
+                }
+              : conversation
+          ),
+        }
+      })
+    }
+
+    socket.on('connect', handleConnect)
+    socket.on('connect_error', handleConnectError)
+    socket.on('receive_message', handleReceiveMessage)
+
+    return () => {
+      socket.off('connect', handleConnect)
+      socket.off('connect_error', handleConnectError)
+      socket.off('receive_message', handleReceiveMessage)
+      socket.disconnect()
+    }
+  }, [])
 
   const updateConversationPreview = (category, conversationId, nextMessages) => {
     setConversations((prev) => ({
@@ -199,20 +260,12 @@ function App({ onLogout }) {
       return
     }
 
-    const newMessage = {
+    socket.emit('send_message', {
       id: Date.now(),
       user: 'You',
       text: messageInput.trim(),
-    }
-
-    setMessagesByConversation((prev) => {
-      const nextMessages = [...(prev[activeConversation.id] ?? []), newMessage]
-      updateConversationPreview(activeTab, activeConversation.id, nextMessages)
-
-      return {
-        ...prev,
-        [activeConversation.id]: nextMessages,
-      }
+      category: activeTab,
+      conversationId: activeConversation.id,
     })
 
     setMessageInput('')
