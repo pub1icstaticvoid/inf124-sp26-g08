@@ -2,6 +2,7 @@ const express = require("express");
 const { Types } = require("mongoose");
 const Friend = require("../models/Friend");
 const User = require("../models/User");
+const { emitToUsers } = require("../socketState");
 
 const router = express.Router();
 
@@ -116,6 +117,12 @@ router.post("/friends", async (req, res) => {
       conversation = await Friend.findById(conversation._id).populate("members", "username email");
     }
 
+    const memberIds = conversation.members.map((member) => member._id.toString());
+    emitToUsers(memberIds, "conversation_upserted", (targetUserId) => ({
+      category: "DMs",
+      conversation: serializeFriend(conversation, targetUserId),
+    }));
+
     res.status(201).json({
       success: true,
       friend: serializeFriend(conversation, userId),
@@ -144,7 +151,15 @@ router.delete("/friends/:friendId", async (req, res) => {
       return res.status(403).json({ error: "you are not part of this friend conversation" });
     }
 
+    const memberIds = conversation.members.map((member) => member.toString());
     await Friend.findByIdAndDelete(friendId);
+
+    emitToUsers(memberIds, "conversation_removed", {
+      category: "DMs",
+      conversationId: friendId,
+      notice: "Friend removed successfully",
+    });
+
     res.json({ success: true, message: "friend removed successfully" });
   } catch (error) {
     res.status(500).json({ error: error.message });

@@ -1,6 +1,7 @@
 const express = require("express");
 const { Types } = require("mongoose");
 const Club = require("../models/Club");
+const { emitToUser, emitToUsers } = require("../socketState");
 const { generateUniqueInviteCode } = require("../utils/inviteCodes");
 const {
   ensureValidUserId,
@@ -11,15 +12,31 @@ const {
   serializeGroupDetail,
   serializeGroupSearchResult,
   serializeGroupSummary,
+  toIdString,
 } = require("../utils/groupEntities");
 
 const router = express.Router();
 
 const isValidId = (id) => Types.ObjectId.isValid(id);
+const clubCategory = "Clubs";
 
 async function loadClubWithMembers(clubId) {
   return Club.findById(clubId).populate("members", "username email profile");
 }
+
+const getClubMemberIds = (club) => (club.members ?? []).map(toIdString).filter(Boolean);
+
+const emitClubRefresh = (club, userIds = getClubMemberIds(club)) => {
+  emitToUsers(userIds, "conversation_upserted", (targetUserId) => ({
+    category: clubCategory,
+    conversation: serializeGroupSummary(club, targetUserId),
+  }));
+
+  emitToUsers(userIds, "group_detail_changed", {
+    category: clubCategory,
+    conversationId: club._id.toString(),
+  });
+};
 
 router.get("/clubs", async (req, res) => {
   try {
@@ -119,6 +136,8 @@ router.post("/clubs", async (req, res) => {
       inviteCode,
     });
 
+    emitClubRefresh(club, [ownerId]);
+
     res.status(201).json({
       success: true,
       club: serializeGroupSummary(club, ownerId),
@@ -151,6 +170,7 @@ router.post("/clubs/join", async (req, res) => {
 
     club.members.push(userId);
     await club.save();
+    emitClubRefresh(club);
 
     res.json({
       success: true,
@@ -182,6 +202,7 @@ router.post("/clubs/:clubId/join", async (req, res) => {
 
     club.members.push(userId);
     await club.save();
+    emitClubRefresh(club);
 
     res.json({
       success: true,
@@ -223,6 +244,7 @@ router.post("/clubs/:clubId/managers", async (req, res) => {
     await club.save();
 
     const updatedClub = await loadClubWithMembers(clubId);
+    emitClubRefresh(updatedClub);
     res.json({
       success: true,
       message: "Member promoted to manager",
@@ -268,10 +290,58 @@ router.post("/clubs/:clubId/members", async (req, res) => {
     await club.save();
 
     const updatedClub = await loadClubWithMembers(clubId);
+    emitClubRefresh(updatedClub);
     res.json({
       success: true,
       message: `${user.username} added to club`,
       club: serializeGroupDetail(updatedClub, managerId),
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post("/clubs/:clubId/leave", async (req, res) => {
+  try {
+    const { clubId } = req.params;
+    const { userId } = req.body;
+
+    if (!isValidId(clubId) || !ensureValidUserId(userId)) {
+      return res.status(400).json({ error: "invalid clubId or userId format" });
+    }
+
+    const club = await Club.findById(clubId);
+    if (!club) {
+      return res.status(404).json({ error: "club not found" });
+    }
+
+    if (!hasMember(club, userId)) {
+      return res.status(404).json({ error: "you are not a member of this club" });
+    }
+
+    if (isManager(club, userId)) {
+      return res
+        .status(403)
+        .json({ error: "managers cannot leave directly. Promote another manager or delete the club instead." });
+    }
+
+    club.members = club.members.filter((member) => member.toString() !== userId.toString());
+    await club.save();
+
+    const updatedClub = await loadClubWithMembers(clubId);
+    emitToUser(userId, "conversation_removed", {
+      category: clubCategory,
+      conversationId: clubId,
+      notice: `You left club: ${club.name}`,
+    });
+
+    if (updatedClub) {
+      emitClubRefresh(updatedClub);
+    }
+
+    res.json({
+      success: true,
+      message: `You left club: ${club.name}`,
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -314,6 +384,14 @@ router.delete("/clubs/:clubId/members/:memberId", async (req, res) => {
     await club.save();
 
     const updatedClub = await loadClubWithMembers(clubId);
+    emitToUser(memberId, "conversation_removed", {
+      category: clubCategory,
+      conversationId: clubId,
+      notice: `You were removed from club: ${club.name}`,
+    });
+    if (updatedClub) {
+      emitClubRefresh(updatedClub);
+    }
     res.json({
       success: true,
       message: "Member removed from club",
@@ -342,7 +420,15 @@ router.delete("/clubs/:clubId", async (req, res) => {
       return res.status(403).json({ error: "only managers can delete clubs" });
     }
 
+    const memberIds = getClubMemberIds(club);
     await Club.findByIdAndDelete(clubId);
+
+    emitToUsers(memberIds, "conversation_removed", {
+      category: clubCategory,
+      conversationId: clubId,
+      notice: `Club deleted: ${club.name}`,
+    });
+
     res.json({ success: true, message: "club deleted successfully" });
   } catch (error) {
     res.status(500).json({ error: error.message });

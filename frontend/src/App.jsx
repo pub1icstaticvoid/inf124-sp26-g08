@@ -150,6 +150,10 @@ function App({ currentUser, onLogout }) {
   const [accentIndex, setAccentIndex] = useState(currentUser?.settings?.accentIndex ?? 0)
 
   const messagesEndRef = useRef(null)
+  const activeTabRef = useRef(activeTab)
+  const activeConversationIdRef = useRef(null)
+  const isInfoSidebarOpenRef = useRef(isInfoSidebarOpen)
+  const currentUserIdRef = useRef(currentUser?.id ?? null)
   const isMessagingTab = messagingTabs.includes(activeTab)
   const isGroupTab = groupTabs.includes(activeTab)
   const categoryConversations = isMessagingTab ? conversations[activeTab] : []
@@ -163,6 +167,34 @@ function App({ currentUser, onLogout }) {
     ? categoryConversations.find((item) => item.id === activeConversationId) ?? categoryConversations[0] ?? null
     : null
   const activeMessages = activeConversation ? messagesByConversation[activeConversation.id] ?? [] : []
+
+  useEffect(() => {
+    activeTabRef.current = activeTab
+  }, [activeTab])
+
+  useEffect(() => {
+    activeConversationIdRef.current = activeConversation?.id ?? null
+  }, [activeConversation?.id])
+
+  useEffect(() => {
+    isInfoSidebarOpenRef.current = isInfoSidebarOpen
+  }, [isInfoSidebarOpen])
+
+  useEffect(() => {
+    currentUserIdRef.current = currentUser?.id ?? null
+  }, [currentUser?.id])
+
+  const buildDetailPath = (category, conversationId, userId) => {
+    if (category === 'DMs') {
+      return `/friends/${conversationId}?userId=${encodeURIComponent(userId)}`
+    }
+
+    if (category === 'Classes') {
+      return `/classrooms/${conversationId}?userId=${encodeURIComponent(userId)}`
+    }
+
+    return `/clubs/${conversationId}?userId=${encodeURIComponent(userId)}`
+  }
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
@@ -269,7 +301,14 @@ function App({ currentUser, onLogout }) {
   useEffect(() => {
     socket.connect()
 
-    const handleConnect = () => console.log('Socket connected:', socket.id)
+    const handleConnect = () => {
+      console.log('Socket connected:', socket.id)
+
+      if (currentUserIdRef.current) {
+        socket.emit('register_user', currentUserIdRef.current)
+      }
+    }
+
     const handleConnectError = (error) => console.error('Socket error:', error.message ?? error)
     const handleMessageError = (payload) => console.error('Socket message error:', payload?.error ?? payload)
 
@@ -310,19 +349,61 @@ function App({ currentUser, onLogout }) {
       })
     }
 
+    const handleConversationRemoved = ({ category, conversationId, notice }) => {
+      if (!category || !conversationId) {
+        return
+      }
+
+      removeConversation(category, conversationId, notice || 'Conversation removed.')
+    }
+
+    const handleConversationUpserted = ({ category, conversation }) => {
+      if (!category || !conversation?.id) {
+        return
+      }
+
+      upsertConversation(category, conversation, '', { select: false })
+    }
+
+    const handleGroupDetailChanged = ({ category, conversationId }) => {
+      if (!category || !conversationId) {
+        return
+      }
+
+      if (
+        activeTabRef.current === category &&
+        activeConversationIdRef.current === conversationId &&
+        isInfoSidebarOpenRef.current
+      ) {
+        refreshOpenDetail(category, conversationId)
+      }
+    }
+
     socket.on('connect', handleConnect)
     socket.on('connect_error', handleConnectError)
     socket.on('message_error', handleMessageError)
     socket.on('receive_message', handleReceiveMessage)
+    socket.on('conversation_removed', handleConversationRemoved)
+    socket.on('conversation_upserted', handleConversationUpserted)
+    socket.on('group_detail_changed', handleGroupDetailChanged)
 
     return () => {
       socket.off('connect', handleConnect)
       socket.off('connect_error', handleConnectError)
       socket.off('message_error', handleMessageError)
       socket.off('receive_message', handleReceiveMessage)
+      socket.off('conversation_removed', handleConversationRemoved)
+      socket.off('conversation_upserted', handleConversationUpserted)
+      socket.off('group_detail_changed', handleGroupDetailChanged)
       socket.disconnect()
     }
   }, [])
+
+  useEffect(() => {
+    if (socket.connected && currentUser?.id) {
+      socket.emit('register_user', currentUser.id)
+    }
+  }, [currentUser?.id])
 
   useEffect(() => {
     if (!isMessagingTab || !activeConversation?.id) {
@@ -398,14 +479,7 @@ function App({ currentUser, onLogout }) {
     setDetailsError('')
     setDetailNotice('')
 
-    const detailPath =
-      activeTab === 'DMs'
-        ? `/friends/${activeConversation.id}?userId=${encodeURIComponent(currentUser.id)}`
-        : activeTab === 'Classes'
-          ? `/classrooms/${activeConversation.id}?userId=${encodeURIComponent(currentUser.id)}`
-          : `/clubs/${activeConversation.id}?userId=${encodeURIComponent(currentUser.id)}`
-
-    apiGet(detailPath)
+    apiGet(buildDetailPath(activeTab, activeConversation.id, currentUser.id))
       .then((data) => {
         if (cancelled) {
           return
@@ -430,6 +504,27 @@ function App({ currentUser, onLogout }) {
     }
   }, [activeConversation?.id, activeTab, currentUser?.id, isInfoSidebarOpen])
 
+  const refreshOpenDetail = async (category, conversationId) => {
+    const userId = currentUserIdRef.current
+    if (!conversationId || !userId) {
+      return
+    }
+
+    try {
+      const data = await apiGet(buildDetailPath(category, conversationId, userId))
+      const detailEntity = data.friend ?? data.classroom ?? data.club ?? null
+
+      setDetailsData(detailEntity)
+      setDetailsError('')
+
+      if (detailEntity && category !== 'DMs') {
+        syncConversationFromDetail(category, detailEntity)
+      }
+    } catch (error) {
+      console.error('Failed to refresh conversation details:', error)
+    }
+  }
+
   const syncConversationFromDetail = (category, detailEntity) => {
     setConversations((prev) => ({
       ...prev,
@@ -449,6 +544,9 @@ function App({ currentUser, onLogout }) {
   }
 
   const removeConversation = (category, conversationId, notice) => {
+    const isActiveConversationRemoved =
+      activeTabRef.current === category && activeConversationIdRef.current === conversationId
+
     setConversations((prev) => {
       const nextList = prev[category].filter((item) => item.id !== conversationId)
 
@@ -472,7 +570,18 @@ function App({ currentUser, onLogout }) {
       return next
     })
 
-    setSidebarNotice(notice)
+    if (isActiveConversationRemoved) {
+      setEditingMessage(null)
+      setMessageInput('')
+      setIsInfoSidebarOpen(false)
+      setDetailsData(null)
+      setDetailsError('')
+      setDetailNotice('')
+    }
+
+    if (notice) {
+      setSidebarNotice(notice)
+    }
   }
 
   const setConversationPreview = (category, conversationId, previewText) => {
@@ -486,7 +595,9 @@ function App({ currentUser, onLogout }) {
     }))
   }
 
-  const upsertConversation = (category, conversation, notice) => {
+  const upsertConversation = (category, conversation, notice, options = {}) => {
+    const { select = true } = options
+
     setConversations((prev) => {
       const existing = prev[category].some((item) => item.id === conversation.id)
       return {
@@ -497,17 +608,21 @@ function App({ currentUser, onLogout }) {
       }
     })
 
-    setSelectedConversationIds((prev) => ({
-      ...prev,
-      [category]: conversation.id,
-    }))
+    if (select) {
+      setSelectedConversationIds((prev) => ({
+        ...prev,
+        [category]: conversation.id,
+      }))
+    }
 
     setMessagesByConversation((prev) => ({
       ...prev,
       [conversation.id]: prev[conversation.id] ?? [],
     }))
 
-    setSidebarNotice(notice)
+    if (notice) {
+      setSidebarNotice(notice)
+    }
   }
 
   const closeAddModal = () => {
@@ -822,6 +937,34 @@ function App({ currentUser, onLogout }) {
     }
   }
 
+  const handleLeaveGroup = async () => {
+    if (!activeConversation) {
+      return
+    }
+
+    const label = activeTab === 'Classes' ? 'classroom' : 'club'
+    const confirmed = window.confirm(`Leave this ${label}?`)
+    if (!confirmed) {
+      return
+    }
+
+    setDetailActionLoading(true)
+    try {
+      const basePath = activeTab === 'Classes' ? 'classrooms' : 'clubs'
+      const data = await apiPost(`/${basePath}/${activeConversation.id}/leave`, {
+        userId: currentUser.id,
+      })
+
+      removeConversation(activeTab, activeConversation.id, data.message || `You left ${label}: ${activeConversation.name}`)
+      setIsInfoSidebarOpen(false)
+      setDetailsData(null)
+    } catch (error) {
+      setDetailsError(error.message)
+    } finally {
+      setDetailActionLoading(false)
+    }
+  }
+
   const handlePromoteMember = async (member) => {
     if (!activeConversation) {
       return
@@ -1020,6 +1163,14 @@ function App({ currentUser, onLogout }) {
                   </button>
                 </div>
               </>
+            )}
+
+            {!detailsData.isManager && (
+              <div className="detail-actions-row">
+                <button type="button" onClick={handleLeaveGroup} disabled={detailActionLoading}>
+                  {detailActionLoading ? 'Leaving…' : `Leave ${activeTab === 'Classes' ? 'Classroom' : 'Club'}`}
+                </button>
+              </div>
             )}
 
             {detailNotice && <p className="detail-success">{detailNotice}</p>}

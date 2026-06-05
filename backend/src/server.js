@@ -6,6 +6,7 @@ const { Server } = require("socket.io");
 const { Types } = require("mongoose");
 const { connectDb, mongoose } = require("./db");
 const Message = require("./models/Message");
+const { getUserRoom, setIo } = require("./socketState");
 const { getRoomKey } = require("./utils/socketRooms");
 
 const authRoutes = require("./routes/auth");
@@ -56,9 +57,18 @@ const io = new Server(server, {
     methods: ["GET", "POST", "PUT", "DELETE"],
   },
 });
+setIo(io);
 
 io.on("connection", (socket) => {
   console.log("Socket connected:", socket.id);
+
+  socket.on("register_user", (userId) => {
+    if (!Types.ObjectId.isValid(userId)) {
+      return;
+    }
+
+    socket.join(getUserRoom(userId));
+  });
 
   socket.on("join_room", ({ category, conversationId }) => {
     if (!category || !conversationId) {

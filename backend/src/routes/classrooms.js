@@ -1,6 +1,7 @@
 const express = require("express");
 const { Types } = require("mongoose");
 const Classroom = require("../models/Classroom");
+const { emitToUser, emitToUsers } = require("../socketState");
 const { generateUniqueInviteCode } = require("../utils/inviteCodes");
 const {
   ensureValidUserId,
@@ -11,15 +12,31 @@ const {
   serializeGroupDetail,
   serializeGroupSearchResult,
   serializeGroupSummary,
+  toIdString,
 } = require("../utils/groupEntities");
 
 const router = express.Router();
 
 const isValidId = (id) => Types.ObjectId.isValid(id);
+const classroomCategory = "Classes";
 
 async function loadClassroomWithMembers(classroomId) {
   return Classroom.findById(classroomId).populate("members", "username email profile");
 }
+
+const getClassroomMemberIds = (classroom) => (classroom.members ?? []).map(toIdString).filter(Boolean);
+
+const emitClassroomRefresh = (classroom, userIds = getClassroomMemberIds(classroom)) => {
+  emitToUsers(userIds, "conversation_upserted", (targetUserId) => ({
+    category: classroomCategory,
+    conversation: serializeGroupSummary(classroom, targetUserId),
+  }));
+
+  emitToUsers(userIds, "group_detail_changed", {
+    category: classroomCategory,
+    conversationId: classroom._id.toString(),
+  });
+};
 
 router.get("/classrooms", async (req, res) => {
   try {
@@ -119,6 +136,8 @@ router.post("/classrooms", async (req, res) => {
       inviteCode,
     });
 
+    emitClassroomRefresh(classroom, [ownerId]);
+
     res.status(201).json({
       success: true,
       classroom: serializeGroupSummary(classroom, ownerId),
@@ -151,6 +170,7 @@ router.post("/classrooms/join", async (req, res) => {
 
     classroom.members.push(userId);
     await classroom.save();
+    emitClassroomRefresh(classroom);
 
     res.json({
       success: true,
@@ -182,6 +202,7 @@ router.post("/classrooms/:classroomId/join", async (req, res) => {
 
     classroom.members.push(userId);
     await classroom.save();
+    emitClassroomRefresh(classroom);
 
     res.json({
       success: true,
@@ -223,6 +244,7 @@ router.post("/classrooms/:classroomId/managers", async (req, res) => {
     await classroom.save();
 
     const updatedClassroom = await loadClassroomWithMembers(classroomId);
+    emitClassroomRefresh(updatedClassroom);
     res.json({
       success: true,
       message: "Member promoted to manager",
@@ -268,10 +290,58 @@ router.post("/classrooms/:classroomId/members", async (req, res) => {
     await classroom.save();
 
     const updatedClassroom = await loadClassroomWithMembers(classroomId);
+    emitClassroomRefresh(updatedClassroom);
     res.json({
       success: true,
       message: `${user.username} added to classroom`,
       classroom: serializeGroupDetail(updatedClassroom, managerId),
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post("/classrooms/:classroomId/leave", async (req, res) => {
+  try {
+    const { classroomId } = req.params;
+    const { userId } = req.body;
+
+    if (!isValidId(classroomId) || !ensureValidUserId(userId)) {
+      return res.status(400).json({ error: "invalid classroomId or userId format" });
+    }
+
+    const classroom = await Classroom.findById(classroomId);
+    if (!classroom) {
+      return res.status(404).json({ error: "classroom not found" });
+    }
+
+    if (!hasMember(classroom, userId)) {
+      return res.status(404).json({ error: "you are not a member of this classroom" });
+    }
+
+    if (isManager(classroom, userId)) {
+      return res
+        .status(403)
+        .json({ error: "managers cannot leave directly. Promote another manager or delete the classroom instead." });
+    }
+
+    classroom.members = classroom.members.filter((member) => member.toString() !== userId.toString());
+    await classroom.save();
+
+    const updatedClassroom = await loadClassroomWithMembers(classroomId);
+    emitToUser(userId, "conversation_removed", {
+      category: classroomCategory,
+      conversationId: classroomId,
+      notice: `You left classroom: ${classroom.name}`,
+    });
+
+    if (updatedClassroom) {
+      emitClassroomRefresh(updatedClassroom);
+    }
+
+    res.json({
+      success: true,
+      message: `You left classroom: ${classroom.name}`,
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -314,6 +384,14 @@ router.delete("/classrooms/:classroomId/members/:memberId", async (req, res) => 
     await classroom.save();
 
     const updatedClassroom = await loadClassroomWithMembers(classroomId);
+    emitToUser(memberId, "conversation_removed", {
+      category: classroomCategory,
+      conversationId: classroomId,
+      notice: `You were removed from classroom: ${classroom.name}`,
+    });
+    if (updatedClassroom) {
+      emitClassroomRefresh(updatedClassroom);
+    }
     res.json({
       success: true,
       message: "Member removed from classroom",
@@ -342,7 +420,15 @@ router.delete("/classrooms/:classroomId", async (req, res) => {
       return res.status(403).json({ error: "only managers can delete classrooms" });
     }
 
+    const memberIds = getClassroomMemberIds(classroom);
     await Classroom.findByIdAndDelete(classroomId);
+
+    emitToUsers(memberIds, "conversation_removed", {
+      category: classroomCategory,
+      conversationId: classroomId,
+      notice: `Classroom deleted: ${classroom.name}`,
+    });
+
     res.json({ success: true, message: "classroom deleted successfully" });
   } catch (error) {
     res.status(500).json({ error: error.message });
