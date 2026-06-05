@@ -1,9 +1,8 @@
 .profile-tab {
     width: 100%;
     height: 100%;
-    box-sizing: border-box;
     background: var(--bg);
-    padding: 28px 32px;
+    padding: clamp(16px, 3vw, 32px);
     display: flex;
     flex-direction: column;
     gap: 28px;
@@ -26,8 +25,8 @@
 }
 
 .profile-avatar {
-    width: 160px;
-    height: 160px;
+    width: clamp(96px, 16vw, 160px);
+    height: clamp(96px, 16vw, 160px);
     border-radius: 50%;
     background: var(--code-bg);
     color: var(--text);
@@ -43,19 +42,21 @@
 
 .profile-user-info h1 {
     margin: 8px 0 4px 0;
-    font-size: 2.8rem;
+    font-size: clamp(1.8rem, 4vw, 2.8rem);
     font-weight: 700;
     color: var(--text-h);
     letter-spacing: -1px;
+    overflow-wrap: anywhere;
 }
 
 .email {
     margin-top: 1rem;
     margin-left: 4px;
-    font-size: 1.3rem;
+    font-size: clamp(0.95rem, 2.4vw, 1.3rem);
     font-weight: 400;
     color: var(--text);
     font-family: var(--sans);
+    overflow-wrap: anywhere;
 }
 
 .profile-text {
@@ -73,8 +74,8 @@
 }
 
 .profile-bio-section {
-    width: 45%;
-    min-width: 260px;
+    width: min(100%, 460px);
+    min-width: 0;
 }
 
 .profile-bio-section h3 {
@@ -86,7 +87,7 @@
 
 .profile-bio-box {
     width: 100%;
-    height: 8rem;
+    min-height: 8rem;
     background: var(--code-bg);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -123,7 +124,7 @@
 }
 
 .profile-left-info {
-    width: 230px;
+    width: min(100%, 230px);
     flex-shrink: 0;
 }
 
@@ -172,7 +173,7 @@
 
 .profile-clubs-section {
     flex: 1;
-    min-width: 260px;
+    min-width: 0;
 }
 
 .profile-clubs-section > h3 {
@@ -238,5 +239,42 @@
 
   .profile-clubs-box {
     max-width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .profile-tab {
+    gap: 20px;
+  }
+
+  .profile-user-section {
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    text-align: center;
+  }
+
+  .profile-user-info {
+    width: 100%;
+  }
+
+  .email {
+    margin-left: 0;
+    margin-top: 0.5rem;
+  }
+
+  .profile-bio-section h3 {
+    text-align: left;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+  }
+
+  .profile-tab-bottom {
+    gap: 20px;
+  }
+
+  .profile-clubs-header,
+  .profile-club-row {
+    gap: 10px;
   }
 }

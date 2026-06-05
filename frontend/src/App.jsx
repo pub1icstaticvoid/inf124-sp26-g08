@@ -138,6 +138,7 @@ function App({ currentUser, onLogout }) {
   const [joinSearchResults, setJoinSearchResults] = useState([])
   const [joinSearchLoading, setJoinSearchLoading] = useState(false)
   const [joinSearchMessage, setJoinSearchMessage] = useState('')
+  const [isConversationSidebarOpen, setIsConversationSidebarOpen] = useState(false)
   const [isInfoSidebarOpen, setIsInfoSidebarOpen] = useState(false)
   const [detailsLoading, setDetailsLoading] = useState(false)
   const [detailsError, setDetailsError] = useState('')
@@ -149,6 +150,7 @@ function App({ currentUser, onLogout }) {
   const [theme, setTheme] = useState(currentUser?.settings?.theme ?? 'dark')
   const [accentIndex, setAccentIndex] = useState(currentUser?.settings?.accentIndex ?? 0)
 
+  const messagesContainerRef = useRef(null)
   const messagesEndRef = useRef(null)
   const activeTabRef = useRef(activeTab)
   const activeConversationIdRef = useRef(null)
@@ -167,6 +169,7 @@ function App({ currentUser, onLogout }) {
     ? categoryConversations.find((item) => item.id === activeConversationId) ?? categoryConversations[0] ?? null
     : null
   const activeMessages = activeConversation ? messagesByConversation[activeConversation.id] ?? [] : []
+  const canSendMessage = Boolean(activeConversation && messageInput.trim())
 
   useEffect(() => {
     activeTabRef.current = activeTab
@@ -295,7 +298,15 @@ function App({ currentUser, onLogout }) {
   }, [activeConversation?.id])
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const container = messagesContainerRef.current
+    if (!container) {
+      return
+    }
+
+    container.scrollTo({
+      top: container.scrollHeight,
+      behavior: 'smooth',
+    })
   }, [activeConversation?.id, activeMessages.length])
 
   useEffect(() => {
@@ -651,6 +662,7 @@ function App({ currentUser, onLogout }) {
     setMessageInput('')
     setEditingMessage(null)
     setSidebarNotice('')
+    setIsConversationSidebarOpen(false)
     setIsInfoSidebarOpen(false)
     setDetailsData(null)
     setDetailsError('')
@@ -662,6 +674,7 @@ function App({ currentUser, onLogout }) {
       ...prev,
       [activeTab]: conversationId,
     }))
+    setIsConversationSidebarOpen(false)
     setMessageInput('')
     setEditingMessage(null)
   }
@@ -1048,7 +1061,9 @@ function App({ currentUser, onLogout }) {
       <aside className="detail-sidebar">
         <div className="detail-sidebar-header">
           <h3>{activeTab === 'DMs' ? 'Friend Info' : `${activeTab.slice(0, -1)} Info`}</h3>
-          <button type="button" onClick={() => setIsInfoSidebarOpen(false)}>Close</button>
+          <button type="button" aria-label="Close information sidebar" onClick={() => setIsInfoSidebarOpen(false)}>
+            Close
+          </button>
         </div>
 
         {detailsLoading ? (
@@ -1187,31 +1202,52 @@ function App({ currentUser, onLogout }) {
       }`}
     >
       <nav className="nav-sidebar">
-        {allTabs.map((tab) => (
-          <button
-            key={tab}
-            type="button"
-            className={activeTab === tab ? 'nav-active' : ''}
-            onClick={() => handleTabChange(tab)}
+        <div className="nav-mobile-select">
+          <label className="nav-mobile-select-label" htmlFor="tab-select">
+            Current Tab
+          </label>
+          <select
+            id="tab-select"
+            value={activeTab}
+            aria-label="Choose app section"
+            onChange={(event) => handleTabChange(event.target.value)}
           >
-            {tab}
-          </button>
-        ))}
+            {allTabs.map((tab) => (
+              <option key={tab} value={tab}>
+                {tab}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="nav-button-list">
+          {allTabs.map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              className={activeTab === tab ? 'nav-active' : ''}
+              onClick={() => handleTabChange(tab)}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
         <button type="button" className="logout-btn" onClick={onLogout}>
           Log Out
         </button>
       </nav>
 
       {isMessagingTab && (
-        <aside className="list-sidebar">
+        <aside className={`list-sidebar ${isConversationSidebarOpen ? 'list-sidebar-open' : ''}`}>
           <div className="search-box">
             <input
               type="text"
               placeholder="Search"
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
+              aria-label={`Search ${activeTab}`}
             />
-            <button type="button" onClick={openAddModal}>+</button>
+            <button type="button" aria-label={`Add to ${activeTab}`} onClick={openAddModal}>+</button>
           </div>
 
           {sidebarNotice && <p className="sidebar-notice">{sidebarNotice}</p>}
@@ -1259,18 +1295,37 @@ function App({ currentUser, onLogout }) {
             <section className="chat-main-panel">
               <header className="chat-header">
                 <h2 className="chat-header-text">{renderChatHeader()}</h2>
-                {activeConversation && (
-                  <button
-                    type="button"
-                    className="chat-info-button"
-                    onClick={() => setIsInfoSidebarOpen((prev) => !prev)}
-                  >
-                    {isInfoSidebarOpen ? 'Hide Info' : 'Show Info'}
-                  </button>
-                )}
+                <div className="chat-header-actions">
+                  {isMessagingTab && (
+                    <button
+                      type="button"
+                      className="chat-list-button"
+                      aria-label={isConversationSidebarOpen ? 'Hide conversations' : 'Show conversations'}
+                      onClick={() => {
+                        setIsInfoSidebarOpen(false)
+                        setIsConversationSidebarOpen((prev) => !prev)
+                      }}
+                    >
+                      {isConversationSidebarOpen ? 'Hide Chats' : 'Chats'}
+                    </button>
+                  )}
+                  {activeConversation && (
+                    <button
+                      type="button"
+                      className="chat-info-button"
+                      aria-label={isInfoSidebarOpen ? 'Hide information sidebar' : 'Show information sidebar'}
+                      onClick={() => {
+                        setIsConversationSidebarOpen(false)
+                        setIsInfoSidebarOpen((prev) => !prev)
+                      }}
+                    >
+                      {isInfoSidebarOpen ? 'Hide Info' : 'Show Info'}
+                    </button>
+                  )}
+                </div>
               </header>
 
-              <div className="messages">
+              <div className="messages" ref={messagesContainerRef}>
                 {messagesLoading ? (
                   <p className="empty-list-state">Loading messages…</p>
                 ) : activeConversation ? (
@@ -1337,18 +1392,24 @@ function App({ currentUser, onLogout }) {
               </div>
 
               <div className="input-area">
-                <input
-                  type="text"
-                  placeholder={activeConversation ? 'Message…' : 'Select a conversation first'}
-                  value={messageInput}
-                  onChange={(event) => setMessageInput(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      handleSendMessage()
-                    }
-                  }}
-                  disabled={!activeConversation}
-                />
+                <div className="input-row">
+                  <input
+                    type="text"
+                    placeholder={activeConversation ? 'Message…' : 'Select a conversation first'}
+                    value={messageInput}
+                    onChange={(event) => setMessageInput(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        handleSendMessage()
+                      }
+                    }}
+                    aria-label="Message input"
+                    disabled={!activeConversation}
+                  />
+                  <button type="button" className="send-button" onClick={handleSendMessage} disabled={!canSendMessage}>
+                    Send
+                  </button>
+                </div>
               </div>
             </section>
 
@@ -1356,6 +1417,18 @@ function App({ currentUser, onLogout }) {
           </div>
         )}
       </main>
+
+      {isMessagingTab && isConversationSidebarOpen && (
+        <button
+          type="button"
+          className="mobile-overlay"
+          aria-label="Close open sidebar"
+          onClick={() => {
+            setIsConversationSidebarOpen(false)
+            setIsInfoSidebarOpen(false)
+          }}
+        />
+      )}
 
       {isAddModalOpen && (
         <div className="modal-backdrop" onClick={closeAddModal}>

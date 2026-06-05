@@ -35,6 +35,7 @@
   font-size: 1.1rem;
   font-weight: 700;
   color: var(--accent);
+  overflow-wrap: anywhere;
 }
 
 .announcement-cards {
@@ -75,6 +76,7 @@
   font-family: var(--sans);
   font-size: 0.9rem;
   line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .announcement-history {
@@ -116,5 +118,25 @@
   .announcement-history {
     border-top: 1px solid var(--border);
     border-bottom: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .announcements-page {
+    padding: 18px 14px 24px;
+  }
+
+  .announcements-groups {
+    gap: 16px;
+  }
+
+  .announcement-cards {
+    grid-template-columns: 1fr;
+    padding: 12px 14px;
+  }
+
+  .announcement-card {
+    min-height: 96px;
+    padding: 14px;
   }
 }
