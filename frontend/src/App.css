@@ -102,6 +102,14 @@
   background: var(--accent-subtle);
 }
 
+.sidebar-notice {
+  margin: 0;
+  padding: 0 12px 12px;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .chat-window {
   display: flex;
   flex-direction: column;
@@ -272,6 +280,93 @@
   color: var(--accent);
   font-weight: 600;
   font-size: 14px;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1000;
+}
+
+.modal-card {
+  width: min(440px, 100%);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 20px;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: var(--text-h);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.modal-toggle-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.modal-toggle-row button {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+}
+
+.modal-toggle-row .modal-toggle-active {
+  background: var(--accent-bg);
+  color: var(--accent);
+  border-color: var(--accent-border);
+}
+
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--text-h);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.modal-field input,
+.modal-field textarea {
+  width: 100%;
+  padding: 10px 12px;
+}
+
+.modal-field textarea {
+  resize: vertical;
+}
+
+.modal-error {
+  margin: 0;
+  color: #ef4444;
+  font-size: 13px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.modal-actions button {
+  padding: 9px 14px;
 }
 
 @media (max-width: 900px) {

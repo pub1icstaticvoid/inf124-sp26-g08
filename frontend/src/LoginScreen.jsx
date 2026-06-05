@@ -1,7 +1,5 @@
 import { useState } from "react";
 import './LoginScreen.css'
-import App from "./App";
-import CreateAccount from "./CreateAccount";
 import { apiPost } from "./api";
 
 

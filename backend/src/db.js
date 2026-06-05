@@ -1,31 +1,24 @@
-// shared database client
-require("dotenv").config();
-const { MongoClient } = require("mongodb");
-
-const client = new MongoClient(process.env.MONGO_URI);
-let dbInstance = null;
+require("./env");
+const mongoose = require("mongoose");
 
 const connectDb = async () => {
-    try {
-        await client.connect();
+  const mongoUri = process.env.MONGO_URI;
+  const mongoDbName = process.env.MONGO_DB_NAME;
 
-        dbInstance = client.db();
-        console.log("connected to shared mongoDB atlas cloud");
+  if (!mongoUri) {
+    throw new Error("Missing MONGO_URI in backend/.env");
+  }
 
-        await dbInstance.collection("users").createIndex({ "email": 1}, { unique: true });
+  await mongoose.connect(mongoUri, mongoDbName ? { dbName: mongoDbName } : {});
 
-        await dbInstance.collection("messages").createIndex({ "conversationId": 1, "timestamp": 1 });
-    }
-    catch (error) {
-        console.error("mongoDB connection failed");
-        console.error(error);
-        process.exit(1);
-    }
+  const activeDbName = mongoose.connection.name;
+  console.log(`Connected to MongoDB database "${activeDbName}"`);
+
+  if (!mongoDbName && activeDbName === "test") {
+    console.warn(
+      'MongoDB connected to the default "test" database. Add MONGO_DB_NAME to backend/.env or include the database name in MONGO_URI.'
+    );
+  }
 };
 
-const getDb = () => {
-    if (!dbInstance) throw new Error("database not initialized");
-    return dbInstance;
-};
-
-module.exports = { connectDb, getDb };
+module.exports = { connectDb, mongoose };

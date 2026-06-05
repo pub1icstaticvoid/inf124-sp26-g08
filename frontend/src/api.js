@@ -1,6 +1,4 @@
-// Central API helper — all fetch calls go through here.
-// If your backend port or host ever changes, update one line.
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
 async function request(path, options = {}) {
   const res = await fetch(`${API_BASE}${path}`, {
