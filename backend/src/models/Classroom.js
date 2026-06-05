@@ -6,6 +6,7 @@ const classroomSchema = new mongoose.Schema(
     description: { type: String, trim: true, default: "" },
     ownerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     members: [{ type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }],
+    managers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     inviteCode: { type: String, required: true, unique: true, uppercase: true, trim: true },
   },
   { timestamps: { createdAt: "createdAt", updatedAt: "updatedAt" } }

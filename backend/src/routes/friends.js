@@ -42,6 +42,42 @@ router.get("/friends", async (req, res) => {
   }
 });
 
+router.get("/friends/:friendId", async (req, res) => {
+  try {
+    const { friendId } = req.params;
+    const { userId } = req.query;
+
+    if (!isValidId(friendId) || !isValidId(userId)) {
+      return res.status(400).json({ error: "invalid friendId or userId format" });
+    }
+
+    const conversation = await Friend.findById(friendId).populate("members", "username email profile");
+    if (!conversation) {
+      return res.status(404).json({ error: "friend conversation not found" });
+    }
+
+    const isParticipant = conversation.members.some((member) => member._id.toString() === userId.toString());
+    if (!isParticipant) {
+      return res.status(403).json({ error: "you are not part of this friend conversation" });
+    }
+
+    const otherMember = conversation.members.find((member) => member._id.toString() !== userId.toString());
+
+    res.json({
+      success: true,
+      friend: {
+        id: conversation._id.toString(),
+        userId: otherMember?._id?.toString() ?? "",
+        name: otherMember?.username ?? "Unknown Friend",
+        email: otherMember?.email ?? "",
+        profile: otherMember?.profile ?? {},
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.post("/friends", async (req, res) => {
   try {
     const { userId, friendEmail } = req.body;
@@ -84,6 +120,32 @@ router.post("/friends", async (req, res) => {
       success: true,
       friend: serializeFriend(conversation, userId),
     });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.delete("/friends/:friendId", async (req, res) => {
+  try {
+    const { friendId } = req.params;
+    const { userId } = req.query;
+
+    if (!isValidId(friendId) || !isValidId(userId)) {
+      return res.status(400).json({ error: "invalid friendId or userId format" });
+    }
+
+    const conversation = await Friend.findById(friendId);
+    if (!conversation) {
+      return res.status(404).json({ error: "friend conversation not found" });
+    }
+
+    const isParticipant = conversation.members.some((member) => member.toString() === userId.toString());
+    if (!isParticipant) {
+      return res.status(403).json({ error: "you are not part of this friend conversation" });
+    }
+
+    await Friend.findByIdAndDelete(friendId);
+    res.json({ success: true, message: "friend removed successfully" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

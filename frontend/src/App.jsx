@@ -80,7 +80,15 @@ const emptySelectedConversationIds = {
   Clubs: null,
 }
 
+const emptyAddForm = {
+  name: '',
+  description: '',
+  friendEmail: '',
+  inviteCode: '',
+}
+
 const messagingTabs = ['DMs', 'Classes', 'Clubs']
+const groupTabs = ['Classes', 'Clubs']
 const allTabs = ['DMs', 'Classes', 'Clubs', 'Profile', 'Announcements', 'Settings']
 
 function applyAccentVars(theme, accentIndex) {
@@ -96,10 +104,6 @@ function applyAccentVars(theme, accentIndex) {
   document.documentElement.style.setProperty('--accent-hover-base', hover)
   document.documentElement.style.setProperty('--accent-subtle-base', `rgba(${r}, ${g}, ${b}, 0.1)`)
   document.documentElement.style.setProperty('--accent-border-base', `rgba(${r}, ${g}, ${b}, 0.4)`)
-}
-
-function isValidObjectId(value) {
-  return /^[a-fA-F0-9]{24}$/.test(value ?? '')
 }
 
 function mapMessage(message) {
@@ -127,20 +131,27 @@ function App({ currentUser, onLogout }) {
   const [sidebarNotice, setSidebarNotice] = useState('')
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [addMode, setAddMode] = useState('create')
-  const [addForm, setAddForm] = useState({
-    name: '',
-    description: '',
-    friendEmail: '',
-    inviteCode: '',
-  })
+  const [addForm, setAddForm] = useState(emptyAddForm)
   const [addError, setAddError] = useState('')
   const [addSubmitting, setAddSubmitting] = useState(false)
+  const [joinSearchQuery, setJoinSearchQuery] = useState('')
+  const [joinSearchResults, setJoinSearchResults] = useState([])
+  const [joinSearchLoading, setJoinSearchLoading] = useState(false)
+  const [joinSearchMessage, setJoinSearchMessage] = useState('')
+  const [isInfoSidebarOpen, setIsInfoSidebarOpen] = useState(false)
+  const [detailsLoading, setDetailsLoading] = useState(false)
+  const [detailsError, setDetailsError] = useState('')
+  const [detailsData, setDetailsData] = useState(null)
+  const [detailActionLoading, setDetailActionLoading] = useState(false)
+  const [detailInviteEmail, setDetailInviteEmail] = useState('')
+  const [detailNotice, setDetailNotice] = useState('')
 
   const [theme, setTheme] = useState(currentUser?.settings?.theme ?? 'dark')
   const [accentIndex, setAccentIndex] = useState(currentUser?.settings?.accentIndex ?? 0)
 
   const messagesEndRef = useRef(null)
   const isMessagingTab = messagingTabs.includes(activeTab)
+  const isGroupTab = groupTabs.includes(activeTab)
   const categoryConversations = isMessagingTab ? conversations[activeTab] : []
   const filteredConversations = categoryConversations.filter((item) =>
     item.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -217,7 +228,7 @@ function App({ currentUser, onLogout }) {
   }, [activeTab])
 
   useEffect(() => {
-    if (!activeConversation?.id || !isValidObjectId(activeConversation.id)) {
+    if (!activeConversation?.id) {
       return
     }
 
@@ -330,6 +341,140 @@ function App({ currentUser, onLogout }) {
     }
   }, [activeTab, activeConversation?.id, isMessagingTab])
 
+  useEffect(() => {
+    if (!isAddModalOpen || !isGroupTab || addMode !== 'join') {
+      setJoinSearchResults([])
+      setJoinSearchLoading(false)
+      setJoinSearchMessage('')
+      return
+    }
+
+    const trimmedQuery = joinSearchQuery.trim()
+    if (trimmedQuery.length < 2) {
+      setJoinSearchResults([])
+      setJoinSearchMessage(trimmedQuery.length === 0 ? '' : 'Type at least 2 characters to search.')
+      return
+    }
+
+    let cancelled = false
+    setJoinSearchLoading(true)
+    setJoinSearchMessage('')
+
+    const basePath = activeTab === 'Classes' ? 'classrooms' : 'clubs'
+    apiGet(`/${basePath}/search?userId=${encodeURIComponent(currentUser.id)}&q=${encodeURIComponent(trimmedQuery)}`)
+      .then((data) => {
+        if (cancelled) {
+          return
+        }
+
+        const results = activeTab === 'Classes' ? data.classrooms ?? [] : data.clubs ?? []
+        setJoinSearchResults(results)
+        setJoinSearchMessage(results.length === 0 ? 'No matching results found.' : '')
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setJoinSearchResults([])
+          setJoinSearchMessage(error.message)
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setJoinSearchLoading(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [activeTab, addMode, currentUser?.id, isAddModalOpen, isGroupTab, joinSearchQuery])
+
+  useEffect(() => {
+    if (!isInfoSidebarOpen || !activeConversation?.id || !currentUser?.id) {
+      return
+    }
+
+    let cancelled = false
+    setDetailsLoading(true)
+    setDetailsError('')
+    setDetailNotice('')
+
+    const detailPath =
+      activeTab === 'DMs'
+        ? `/friends/${activeConversation.id}?userId=${encodeURIComponent(currentUser.id)}`
+        : activeTab === 'Classes'
+          ? `/classrooms/${activeConversation.id}?userId=${encodeURIComponent(currentUser.id)}`
+          : `/clubs/${activeConversation.id}?userId=${encodeURIComponent(currentUser.id)}`
+
+    apiGet(detailPath)
+      .then((data) => {
+        if (cancelled) {
+          return
+        }
+
+        setDetailsData(data.friend ?? data.classroom ?? data.club ?? null)
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setDetailsData(null)
+          setDetailsError(error.message)
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setDetailsLoading(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [activeConversation?.id, activeTab, currentUser?.id, isInfoSidebarOpen])
+
+  const syncConversationFromDetail = (category, detailEntity) => {
+    setConversations((prev) => ({
+      ...prev,
+      [category]: prev[category].map((conversation) =>
+        conversation.id === detailEntity.id
+          ? {
+              ...conversation,
+              name: detailEntity.name,
+              description: detailEntity.description,
+              inviteCode: detailEntity.inviteCode,
+              memberCount: detailEntity.members?.length ?? conversation.memberCount,
+              isManager: detailEntity.isManager ?? conversation.isManager,
+            }
+          : conversation
+      ),
+    }))
+  }
+
+  const removeConversation = (category, conversationId, notice) => {
+    setConversations((prev) => {
+      const nextList = prev[category].filter((item) => item.id !== conversationId)
+
+      setSelectedConversationIds((selectedPrev) => ({
+        ...selectedPrev,
+        [category]:
+          selectedPrev[category] === conversationId
+            ? nextList[0]?.id ?? null
+            : selectedPrev[category],
+      }))
+
+      return {
+        ...prev,
+        [category]: nextList,
+      }
+    })
+
+    setMessagesByConversation((prev) => {
+      const next = { ...prev }
+      delete next[conversationId]
+      return next
+    })
+
+    setSidebarNotice(notice)
+  }
+
   const setConversationPreview = (category, conversationId, previewText) => {
     setConversations((prev) => ({
       ...prev,
@@ -347,7 +492,7 @@ function App({ currentUser, onLogout }) {
       return {
         ...prev,
         [category]: existing
-          ? prev[category].map((item) => (item.id === conversation.id ? conversation : item))
+          ? prev[category].map((item) => (item.id === conversation.id ? { ...item, ...conversation } : item))
           : [conversation, ...prev[category]],
       }
     })
@@ -369,17 +514,19 @@ function App({ currentUser, onLogout }) {
     setIsAddModalOpen(false)
     setAddError('')
     setAddSubmitting(false)
-    setAddForm({
-      name: '',
-      description: '',
-      friendEmail: '',
-      inviteCode: '',
-    })
+    setAddForm(emptyAddForm)
+    setJoinSearchQuery('')
+    setJoinSearchResults([])
+    setJoinSearchMessage('')
   }
 
   const openAddModal = () => {
     setAddMode(activeTab === 'DMs' ? 'add' : 'create')
     setAddError('')
+    setAddForm(emptyAddForm)
+    setJoinSearchQuery('')
+    setJoinSearchResults([])
+    setJoinSearchMessage('')
     setIsAddModalOpen(true)
   }
 
@@ -389,6 +536,10 @@ function App({ currentUser, onLogout }) {
     setMessageInput('')
     setEditingMessage(null)
     setSidebarNotice('')
+    setIsInfoSidebarOpen(false)
+    setDetailsData(null)
+    setDetailsError('')
+    setDetailNotice('')
   }
 
   const handleSelectConversation = (conversationId) => {
@@ -398,6 +549,33 @@ function App({ currentUser, onLogout }) {
     }))
     setMessageInput('')
     setEditingMessage(null)
+  }
+
+  const handleJoinSearchResult = async (result) => {
+    setAddSubmitting(true)
+    setAddError('')
+
+    try {
+      if (activeTab === 'Classes') {
+        const data = await apiPost(`/classrooms/${result.id}/join`, {
+          userId: currentUser.id,
+        })
+
+        upsertConversation('Classes', data.classroom, data.message || `Joined classroom: ${result.name}`)
+      } else {
+        const data = await apiPost(`/clubs/${result.id}/join`, {
+          userId: currentUser.id,
+        })
+
+        upsertConversation('Clubs', data.club, data.message || `Joined club: ${result.name}`)
+      }
+
+      closeAddModal()
+    } catch (error) {
+      setAddError(error.message)
+    } finally {
+      setAddSubmitting(false)
+    }
   }
 
   const handleAddSubmit = async (event) => {
@@ -432,7 +610,7 @@ function App({ currentUser, onLogout }) {
             inviteCode: addForm.inviteCode,
           })
 
-          upsertConversation('Classes', data.classroom, `Joined classroom: ${data.classroom.name}`)
+          upsertConversation('Classes', data.classroom, data.message || `Joined classroom: ${data.classroom.name}`)
         }
       } else if (activeTab === 'Clubs') {
         if (addMode === 'create') {
@@ -449,7 +627,7 @@ function App({ currentUser, onLogout }) {
             inviteCode: addForm.inviteCode,
           })
 
-          upsertConversation('Clubs', data.club, `Joined club: ${data.club.name}`)
+          upsertConversation('Clubs', data.club, data.message || `Joined club: ${data.club.name}`)
         }
       }
 
@@ -578,6 +756,127 @@ function App({ currentUser, onLogout }) {
     }
   }
 
+  const runGroupDetailAction = async (request, successMessage) => {
+    setDetailActionLoading(true)
+    setDetailsError('')
+    setDetailNotice('')
+
+    try {
+      const data = await request()
+      const detailEntity = data.classroom ?? data.club
+      setDetailsData(detailEntity)
+      syncConversationFromDetail(activeTab, detailEntity)
+      setDetailNotice(data.message || successMessage)
+    } catch (error) {
+      setDetailsError(error.message)
+    } finally {
+      setDetailActionLoading(false)
+    }
+  }
+
+  const handleRemoveFriend = async () => {
+    if (!activeConversation) {
+      return
+    }
+
+    const confirmed = window.confirm(`Remove ${activeConversation.name} from your friends list?`)
+    if (!confirmed) {
+      return
+    }
+
+    setDetailActionLoading(true)
+    try {
+      const data = await apiDelete(`/friends/${activeConversation.id}?userId=${encodeURIComponent(currentUser.id)}`)
+      removeConversation('DMs', activeConversation.id, data.message || `Removed friend: ${activeConversation.name}`)
+      setIsInfoSidebarOpen(false)
+      setDetailsData(null)
+    } catch (error) {
+      setDetailsError(error.message)
+    } finally {
+      setDetailActionLoading(false)
+    }
+  }
+
+  const handleDeleteGroup = async () => {
+    if (!activeConversation) {
+      return
+    }
+
+    const label = activeTab === 'Classes' ? 'classroom' : 'club'
+    const confirmed = window.confirm(`Delete this ${label}? This cannot be undone.`)
+    if (!confirmed) {
+      return
+    }
+
+    setDetailActionLoading(true)
+    try {
+      const basePath = activeTab === 'Classes' ? 'classrooms' : 'clubs'
+      const data = await apiDelete(`/${basePath}/${activeConversation.id}?managerId=${encodeURIComponent(currentUser.id)}`)
+      removeConversation(activeTab, activeConversation.id, data.message || `${label} deleted successfully`)
+      setIsInfoSidebarOpen(false)
+      setDetailsData(null)
+    } catch (error) {
+      setDetailsError(error.message)
+    } finally {
+      setDetailActionLoading(false)
+    }
+  }
+
+  const handlePromoteMember = async (member) => {
+    if (!activeConversation) {
+      return
+    }
+
+    const basePath = activeTab === 'Classes' ? 'classrooms' : 'clubs'
+    await runGroupDetailAction(
+      () =>
+        apiPost(`/${basePath}/${activeConversation.id}/managers`, {
+          managerId: currentUser.id,
+          memberId: member.id,
+        }),
+      `${member.name} promoted to manager`
+    )
+  }
+
+  const handleRemoveMember = async (member) => {
+    if (!activeConversation) {
+      return
+    }
+
+    const label = activeTab === 'Classes' ? 'classroom' : 'club'
+    const confirmed = window.confirm(`Remove ${member.name} from this ${label}?`)
+    if (!confirmed) {
+      return
+    }
+
+    const basePath = activeTab === 'Classes' ? 'classrooms' : 'clubs'
+    await runGroupDetailAction(
+      () =>
+        apiDelete(
+          `/${basePath}/${activeConversation.id}/members/${member.id}?managerId=${encodeURIComponent(currentUser.id)}`
+        ),
+      `${member.name} removed`
+    )
+  }
+
+  const handleInviteMemberByEmail = async (event) => {
+    event.preventDefault()
+    if (!activeConversation || !detailInviteEmail.trim()) {
+      return
+    }
+
+    const basePath = activeTab === 'Classes' ? 'classrooms' : 'clubs'
+    await runGroupDetailAction(
+      () =>
+        apiPost(`/${basePath}/${activeConversation.id}/members`, {
+          managerId: currentUser.id,
+          email: detailInviteEmail.trim(),
+        }),
+      'Member added successfully'
+    )
+    setDetailInviteEmail('')
+  }
+
   const renderChatHeader = () => {
     if (!activeConversation) {
       return activeTab
@@ -595,6 +894,139 @@ function App({ currentUser, onLogout }) {
     return addMode === 'create'
       ? `Create ${activeTab === 'Classes' ? 'Classroom' : 'Club'}`
       : `Join ${activeTab === 'Classes' ? 'Classroom' : 'Club'}`
+  }
+
+  const renderDetailSidebar = () => {
+    if (!isInfoSidebarOpen) {
+      return null
+    }
+
+    return (
+      <aside className="detail-sidebar">
+        <div className="detail-sidebar-header">
+          <h3>{activeTab === 'DMs' ? 'Friend Info' : `${activeTab.slice(0, -1)} Info`}</h3>
+          <button type="button" onClick={() => setIsInfoSidebarOpen(false)}>Close</button>
+        </div>
+
+        {detailsLoading ? (
+          <p className="empty-list-state">Loading details…</p>
+        ) : detailsError ? (
+          <p className="detail-error">{detailsError}</p>
+        ) : !detailsData ? (
+          <p className="empty-list-state">No details available.</p>
+        ) : activeTab === 'DMs' ? (
+          <div className="detail-content">
+            <div className="detail-block">
+              <h4>Name</h4>
+              <p>{detailsData.name}</p>
+            </div>
+
+            <div className="detail-block">
+              <h4>Email</h4>
+              <p>{detailsData.email}</p>
+            </div>
+
+            <div className="detail-block">
+              <h4>Bio</h4>
+              <p>{detailsData.profile?.bio || 'No bio yet.'}</p>
+            </div>
+
+            <div className="detail-block">
+              <h4>Position</h4>
+              <p>{detailsData.profile?.position || 'Not set'}</p>
+            </div>
+
+            <div className="detail-block">
+              <h4>Department</h4>
+              <p>{detailsData.profile?.department || 'Not set'}</p>
+            </div>
+
+            <div className="detail-block">
+              <h4>Graduation Year</h4>
+              <p>{detailsData.profile?.graduationYear || 'Not set'}</p>
+            </div>
+
+            <div className="detail-actions-row">
+              <button type="button" onClick={handleRemoveFriend} disabled={detailActionLoading}>
+                {detailActionLoading ? 'Removing…' : 'Remove Friend'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="detail-content">
+            <div className="detail-block">
+              <h4>Name</h4>
+              <p>{detailsData.name}</p>
+            </div>
+
+            <div className="detail-block">
+              <h4>Description</h4>
+              <p>{detailsData.description || 'No description provided.'}</p>
+            </div>
+
+            <div className="detail-block">
+              <h4>Invitation Code</h4>
+              <p>{detailsData.inviteCode}</p>
+            </div>
+
+            <div className="detail-block">
+              <h4>Members</h4>
+              <div className="detail-members-list">
+                {detailsData.members.map((member) => (
+                  <div key={member.id} className="detail-member-card">
+                    <div>
+                      <strong>{member.name}</strong>
+                      <p>{member.email}</p>
+                      <p>{member.isManager ? 'Manager' : 'Member'}</p>
+                    </div>
+
+                    {detailsData.isManager && member.id !== currentUser.id && (
+                      <div className="detail-member-actions">
+                        {!member.isManager && (
+                          <button type="button" onClick={() => handlePromoteMember(member)} disabled={detailActionLoading}>
+                            Promote
+                          </button>
+                        )}
+                        <button type="button" onClick={() => handleRemoveMember(member)} disabled={detailActionLoading}>
+                          Remove
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {detailsData.isManager && (
+              <>
+                <form className="detail-invite-form" onSubmit={handleInviteMemberByEmail}>
+                  <label className="detail-field">
+                    <span>Add Member By Email</span>
+                    <input
+                      type="email"
+                      value={detailInviteEmail}
+                      onChange={(event) => setDetailInviteEmail(event.target.value)}
+                      placeholder="student@school.edu"
+                    />
+                  </label>
+                  <button type="submit" disabled={detailActionLoading}>
+                    {detailActionLoading ? 'Saving…' : 'Add Member'}
+                  </button>
+                </form>
+
+                <div className="detail-actions-row">
+                  <button type="button" onClick={handleDeleteGroup} disabled={detailActionLoading}>
+                    {detailActionLoading ? 'Deleting…' : `Delete ${activeTab === 'Classes' ? 'Classroom' : 'Club'}`}
+                  </button>
+                </div>
+              </>
+            )}
+
+            {detailNotice && <p className="detail-success">{detailNotice}</p>}
+          </div>
+        )}
+      </aside>
+    )
   }
 
   return (
@@ -672,92 +1104,105 @@ function App({ currentUser, onLogout }) {
             setAccentIndex={setAccentIndex}
           />
         ) : (
-          <>
-            <header className="chat-header">
-              <h2 className="chat-header-text">{renderChatHeader()}</h2>
-            </header>
+          <div className={`chat-layout ${isInfoSidebarOpen ? 'chat-layout-with-sidebar' : ''}`}>
+            <section className="chat-main-panel">
+              <header className="chat-header">
+                <h2 className="chat-header-text">{renderChatHeader()}</h2>
+                {activeConversation && (
+                  <button
+                    type="button"
+                    className="chat-info-button"
+                    onClick={() => setIsInfoSidebarOpen((prev) => !prev)}
+                  >
+                    {isInfoSidebarOpen ? 'Hide Info' : 'Show Info'}
+                  </button>
+                )}
+              </header>
 
-            <div className="messages">
-              {messagesLoading ? (
-                <p className="empty-list-state">Loading messages…</p>
-              ) : activeConversation ? (
-                activeMessages.length > 0 ? (
-                  activeMessages.map((msg) => {
-                    const isEditing =
-                      editingMessage?.conversationId === activeConversation.id &&
-                      editingMessage?.messageId === msg.id
-                    const isOwn = msg.senderId === currentUser?.id || msg.user === currentUser?.username
+              <div className="messages">
+                {messagesLoading ? (
+                  <p className="empty-list-state">Loading messages…</p>
+                ) : activeConversation ? (
+                  activeMessages.length > 0 ? (
+                    activeMessages.map((msg) => {
+                      const isEditing =
+                        editingMessage?.conversationId === activeConversation.id &&
+                        editingMessage?.messageId === msg.id
+                      const isOwn = msg.senderId === currentUser?.id || msg.user === currentUser?.username
 
-                    return (
-                      <div key={msg.id} className={`message-bubble ${isOwn ? 'message-bubble-own' : ''}`}>
-                        <div className="message-row">
-                          <div className="message-content">
-                            <span className={isOwn ? 'my-message' : 'text-recipient'}>
-                              {msg.user}:{' '}
-                            </span>
+                      return (
+                        <div key={msg.id} className={`message-bubble ${isOwn ? 'message-bubble-own' : ''}`}>
+                          <div className="message-row">
+                            <div className="message-content">
+                              <span className={isOwn ? 'my-message' : 'text-recipient'}>
+                                {msg.user}:{' '}
+                              </span>
 
-                            {isEditing ? (
-                              <input
-                                type="text"
-                                className="message-edit-input"
-                                value={editingMessage.text}
-                                onChange={(event) =>
-                                  setEditingMessage((prev) =>
-                                    prev ? { ...prev, text: event.target.value } : prev
-                                  )
-                                }
-                                onKeyDown={(event) => {
-                                  if (event.key === 'Enter') {
-                                    handleSaveEdit()
+                              {isEditing ? (
+                                <input
+                                  type="text"
+                                  className="message-edit-input"
+                                  value={editingMessage.text}
+                                  onChange={(event) =>
+                                    setEditingMessage((prev) =>
+                                      prev ? { ...prev, text: event.target.value } : prev
+                                    )
                                   }
-                                }}
-                              />
-                            ) : (
-                              <span className="text-message">{msg.text}</span>
-                            )}
-                          </div>
+                                  onKeyDown={(event) => {
+                                    if (event.key === 'Enter') {
+                                      handleSaveEdit()
+                                    }
+                                  }}
+                                />
+                              ) : (
+                                <span className="text-message">{msg.text}</span>
+                              )}
+                            </div>
 
-                          <div className="message-actions">
-                            {isEditing ? (
-                              <>
-                                <button type="button" onClick={handleSaveEdit}>Save</button>
-                                <button type="button" onClick={() => setEditingMessage(null)}>Cancel</button>
-                              </>
-                            ) : (
-                              <>
-                                <button type="button" onClick={() => handleStartEdit(msg)}>Edit</button>
-                                <button type="button" onClick={() => handleDeleteMessage(msg.id)}>Delete</button>
-                              </>
-                            )}
+                            <div className="message-actions">
+                              {isEditing ? (
+                                <>
+                                  <button type="button" onClick={handleSaveEdit}>Save</button>
+                                  <button type="button" onClick={() => setEditingMessage(null)}>Cancel</button>
+                                </>
+                              ) : (
+                                <>
+                                  <button type="button" onClick={() => handleStartEdit(msg)}>Edit</button>
+                                  <button type="button" onClick={() => handleDeleteMessage(msg.id)}>Delete</button>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )
-                  })
+                      )
+                    })
+                  ) : (
+                    <p className="empty-list-state">No messages yet. Start the conversation below.</p>
+                  )
                 ) : (
-                  <p className="empty-list-state">No messages yet. Start the conversation below.</p>
-                )
-              ) : (
-                <p className="empty-list-state">Select a conversation from the left sidebar.</p>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
+                  <p className="empty-list-state">Select a conversation from the left sidebar.</p>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
 
-            <div className="input-area">
-              <input
-                type="text"
-                placeholder={activeConversation ? 'Message…' : 'Select a conversation first'}
-                value={messageInput}
-                onChange={(event) => setMessageInput(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    handleSendMessage()
-                  }
-                }}
-                disabled={!activeConversation}
-              />
-            </div>
-          </>
+              <div className="input-area">
+                <input
+                  type="text"
+                  placeholder={activeConversation ? 'Message…' : 'Select a conversation first'}
+                  value={messageInput}
+                  onChange={(event) => setMessageInput(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      handleSendMessage()
+                    }
+                  }}
+                  disabled={!activeConversation}
+                />
+              </div>
+            </section>
+
+            {renderDetailSidebar()}
+          </div>
         )}
       </main>
 
@@ -823,16 +1268,48 @@ function App({ currentUser, onLogout }) {
                   </label>
                 </>
               ) : (
-                <label className="modal-field">
-                  <span>Invite Code</span>
-                  <input
-                    type="text"
-                    value={addForm.inviteCode}
-                    onChange={(event) => setAddForm((prev) => ({ ...prev, inviteCode: event.target.value }))}
-                    placeholder={activeTab === 'Classes' ? 'CLASS-ABC123' : 'CLUB-ABC123'}
-                    required
-                  />
-                </label>
+                <>
+                  <label className="modal-field">
+                    <span>Invite Code</span>
+                    <input
+                      type="text"
+                      value={addForm.inviteCode}
+                      onChange={(event) => setAddForm((prev) => ({ ...prev, inviteCode: event.target.value }))}
+                      placeholder={activeTab === 'Classes' ? 'CLASS-ABC123' : 'CLUB-ABC123'}
+                    />
+                  </label>
+
+                  <label className="modal-field">
+                    <span>Search Existing {activeTab === 'Classes' ? 'Classes' : 'Clubs'}</span>
+                    <input
+                      type="text"
+                      value={joinSearchQuery}
+                      onChange={(event) => setJoinSearchQuery(event.target.value)}
+                      placeholder={activeTab === 'Classes' ? 'Search by classroom name' : 'Search by club name'}
+                    />
+                  </label>
+
+                  <div className="join-search-results">
+                    {joinSearchLoading ? (
+                      <p className="empty-list-state">Searching…</p>
+                    ) : joinSearchResults.length > 0 ? (
+                      joinSearchResults.map((result) => (
+                        <button
+                          key={result.id}
+                          type="button"
+                          className="join-search-result"
+                          onClick={() => handleJoinSearchResult(result)}
+                          disabled={addSubmitting}
+                        >
+                          <strong>{result.name}</strong>
+                          <p>{result.description || 'No description provided.'}</p>
+                        </button>
+                      ))
+                    ) : joinSearchMessage ? (
+                      <p className="empty-list-state">{joinSearchMessage}</p>
+                    ) : null}
+                  </div>
+                </>
               )}
 
               {addError && <p className="modal-error">{addError}</p>}
