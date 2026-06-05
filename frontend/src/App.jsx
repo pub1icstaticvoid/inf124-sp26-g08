@@ -143,6 +143,8 @@ function App({ currentUser, onLogout }) {
     Classes: initialConversations.Classes[0].id,
     Clubs:   initialConversations.Clubs[0].id,
   })
+  const [announcementGroups, setAnnouncementGroups] = useState(FALLBACK_ANNOUNCEMENTS)
+  const [announcementsLoading, setAnnouncementsLoading] = useState(false)
   const [editingMessage, setEditingMessage] = useState(null)
 
   const [theme,       setTheme]       = useState(currentUser?.settings?.theme       ?? 'dark')
