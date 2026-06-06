@@ -1365,19 +1365,21 @@ function App({ currentUser, onLogout }) {
                               )}
                             </div>
 
-                            <div className="message-actions">
-                              {isEditing ? (
-                                <>
-                                  <button type="button" onClick={handleSaveEdit}>Save</button>
-                                  <button type="button" onClick={() => setEditingMessage(null)}>Cancel</button>
-                                </>
-                              ) : (
-                                <>
-                                  <button type="button" onClick={() => handleStartEdit(msg)}>Edit</button>
-                                  <button type="button" onClick={() => handleDeleteMessage(msg.id)}>Delete</button>
-                                </>
-                              )}
-                            </div>
+                            {isOwn && (
+                              <div className="message-actions">
+                                {isEditing ? (
+                                  <>
+                                    <button type="button" onClick={handleSaveEdit}>Save</button>
+                                    <button type="button" onClick={() => setEditingMessage(null)}>Cancel</button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <button type="button" onClick={() => handleStartEdit(msg)}>Edit</button>
+                                    <button type="button" onClick={() => handleDeleteMessage(msg.id)}>Delete</button>
+                                  </>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                       )
