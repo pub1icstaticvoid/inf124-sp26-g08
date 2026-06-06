@@ -41,9 +41,7 @@ export default function Profile({ currentUser }) {
     const timer = setTimeout(() => {
       apiGet(`/clubs/search?userId=${currentUser.id}&q=${encodeURIComponent(clubSearch.trim())}`)
         .then((data) => {
-          // Filter out clubs the user already has on their profile
-          const alreadyAdded = new Set((profile.clubs ?? []).map((c) => c.name));
-          setClubResults((data.clubs ?? []).filter((c) => !alreadyAdded.has(c.name)));
+          setClubResults(data.clubs ?? []);
         })
         .catch((err) => console.error("Club search failed:", err))
         .finally(() => setClubSearchLoading(false));

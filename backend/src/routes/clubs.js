@@ -72,7 +72,6 @@ router.get("/clubs/search", async (req, res) => {
 
     const clubs = await Club.find({
       name: { $regex: trimmedQuery, $options: "i" },
-      members: { $ne: userId },
     })
       .sort({ updatedAt: -1 })
       .limit(10)
