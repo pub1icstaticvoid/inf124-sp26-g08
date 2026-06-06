@@ -23,9 +23,12 @@ const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
 app.use(
   cors({
     origin: frontendUrl,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
   })
 );
 app.use(express.json());
+app.set("trust proxy", 1);
 
 app.get("/api/health", (req, res) => {
   const dbReadyState = mongoose.connection.readyState;
